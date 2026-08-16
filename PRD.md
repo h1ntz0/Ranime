@@ -1,4 +1,4 @@
-# PRD — AnimeList Local
+# PRD: AnimeList Local
 
 **Product:** AnimeList Local
 **Version:** 1.0.0
@@ -129,7 +129,7 @@ Website hanya berfungsi sebagai:
 
 # 5. Target Users
 
-## User Type 1 — Guest
+## User Type 1: Guest
 
 Guest dapat:
 
@@ -152,7 +152,7 @@ Guest tidak dapat:
 
 ---
 
-## User Type 2 — Registered User
+## User Type 2: Registered User
 
 Registered user dapat:
 
@@ -2551,7 +2551,7 @@ Do NOT implement the entire application in one pass.
 
 ---
 
-## Milestone 1 — Foundation
+## Milestone 1: Foundation
 
 Tasks:
 
@@ -2578,7 +2578,7 @@ Frontend can call backend.
 
 ---
 
-## Milestone 2 — Database
+## Milestone 2: Database
 
 Tasks:
 
@@ -2597,7 +2597,7 @@ Database migration works from empty database.
 
 ---
 
-## Milestone 3 — AniList Integration
+## Milestone 3: AniList Integration
 
 Tasks:
 
@@ -2617,7 +2617,7 @@ Application can retrieve anime from AniList and persist it locally.
 
 ---
 
-## Milestone 4 — Anime Catalog
+## Milestone 4: Anime Catalog
 
 Tasks:
 
@@ -2641,7 +2641,7 @@ Guest can fully explore anime catalog.
 
 ---
 
-## Milestone 5 — Authentication
+## Milestone 5: Authentication
 
 Tasks:
 
@@ -2660,7 +2660,7 @@ User can securely authenticate.
 
 ---
 
-## Milestone 6 — Personal Library
+## Milestone 6: Personal Library
 
 Tasks:
 
@@ -2681,7 +2681,7 @@ User can track anime consumption.
 
 ---
 
-## Milestone 7 — Rating & Review
+## Milestone 7: Rating & Review
 
 Tasks:
 
@@ -2702,7 +2702,7 @@ User can rate and review anime.
 
 ---
 
-## Milestone 8 — Statistics
+## Milestone 8: Statistics
 
 Tasks:
 
@@ -2722,7 +2722,7 @@ Statistics reflect real user data.
 
 ---
 
-## Milestone 9 — UX Polish
+## Milestone 9: UX Polish
 
 Tasks:
 
@@ -2745,7 +2745,7 @@ Application feels production-quality.
 
 ---
 
-## Milestone 10 — QA
+## Milestone 10: QA
 
 Tasks:
 
@@ -2766,7 +2766,7 @@ Critical user journeys pass automatically.
 
 ---
 
-## Milestone 11 — Documentation
+## Milestone 11: Documentation
 
 Tasks:
 

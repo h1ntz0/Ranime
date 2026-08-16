@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve AnimeList Local. This is a small, focused project — keep changes scoped
+Thanks for helping improve AnimeList Local. This is a small, focused project: keep changes scoped
 and respectful of the existing architecture.
 
 ## Getting started

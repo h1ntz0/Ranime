@@ -8,10 +8,10 @@ browser never talks to AniList directly.
 Browser
    |
    v
-Frontend (apps/web, :3000) — React + Vite + TanStack Query + Tailwind v4
+Frontend (apps/web, :3000): React + Vite + TanStack Query + Tailwind v4
    |
    v  /api (Vite dev proxy)
-Backend (apps/api, :4000) — Fastify + Zod
+Backend (apps/api, :4000): Fastify + Zod
    |
    +---- PostgreSQL (:5432, Docker)
    |

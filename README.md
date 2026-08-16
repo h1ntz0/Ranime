@@ -1,9 +1,9 @@
 # Ranime
 
-Anime discovery, catalog, tracking, rating and review platform, **local-first**, powered by the
+Anime discovery, catalog, tracking, rating and review platform: **local-first**, powered by the
 AniList GraphQL API and a local PostgreSQL database.
 
-> Status: All milestones (M1–M11) complete — catalog sync, auth, library tracking, watchlist,
+> Status: All milestones (M1–M11) complete: catalog sync, auth, library tracking, watchlist,
 > ratings, reviews with spoiler protection, and statistics are implemented and tested.
 
 Docs: [Cara Menjalankan (panduan lengkap)](RUNBOOK.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Contributing](CONTRIBUTING.md) · License: MIT
@@ -38,7 +38,7 @@ flowchart TD
     style E fill:#533483,stroke:#e94560,color:#fff
 ```
 
-Browser never talks to AniList directly — all external data flows through the backend, is
+Browser never talks to AniList directly: all external data flows through the backend, is
 normalized and persisted locally.
 
 ## Prerequisites
@@ -150,6 +150,6 @@ Key endpoint groups (full list in `apps/api/src/routes/`):
 npm test
 ```
 
-- `apps/api/test/` — 63 integration tests: auth, anime sync + dedup, library, watchlist, ratings,
+- `apps/api/test/`: 63 integration tests: auth, anime sync + dedup, library, watchlist, ratings,
   reviews, spoiler protection, statistics (Fastify `inject` + real PostgreSQL)
-- `apps/web/src/` — component tests (Vitest + Testing Library)
+- `apps/web/src/`: component tests (Vitest + Testing Library)

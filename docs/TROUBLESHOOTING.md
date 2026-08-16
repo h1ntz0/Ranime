@@ -2,7 +2,7 @@
 
 ## Prerequisites & startup
 
-### `npm run dev` fails — "DATABASE_URL and JWT_SECRET are required"
+### `npm run dev` fails: "DATABASE_URL and JWT_SECRET are required"
 
 Copy the env template and generate a secret:
 
@@ -22,9 +22,9 @@ docker logs animelist-postgres   # inspect the error
 
 Common causes:
 
-- **Port 5432 already in use** — stop the other Postgres instance or change the mapped port in
+- **Port 5432 already in use**: stop the other Postgres instance or change the mapped port in
   `docker-compose.yml` (and update `DATABASE_URL`).
-- **Stale volume with wrong credentials** — `docker compose down -v && npm run db:up` (this wipes
+- **Stale volume with wrong credentials**: `docker compose down -v && npm run db:up` (this wipes
   local data, so back up first if needed).
 
 ## AniList sync is slow on first load
@@ -37,7 +37,7 @@ are near-instant.
 If sync consistently fails:
 
 1. Check network access to `https://graphql.anilist.co`.
-2. Look for rate limiting — AniList throttles aggressive clients. Retries back off automatically.
+2. Look for rate limiting: AniList throttles aggressive clients. Retries back off automatically.
 3. Inspect `sync_logs` for failures:
    ```sql
    SELECT operation, status, message, duration_ms, synced_at
@@ -57,10 +57,10 @@ sync completed (see above) and that the detail query succeeded in the API logs
 
 ## Login issues
 
-- **Login succeeds but redirect loops** — clear cookies for `localhost:3000`. The session cookie is
+- **Login succeeds but redirect loops**: clear cookies for `localhost:3000`. The session cookie is
   HTTP-only and `sameSite=lax`; a mismatched `FRONTEND_URL`/`PORT` in `.env` can break the
   redirect back from `?next=`.
-- **Forgot password** — there is no self-service reset. The `password_hash` uses Argon2id, so reset
+- **Forgot password**: there is no self-service reset. The `password_hash` uses Argon2id, so reset
   via the database is not possible; register a new account or add a reset flow.
 
 ## Avatar upload fails
