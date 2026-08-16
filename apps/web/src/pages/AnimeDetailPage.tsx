@@ -43,6 +43,7 @@ import { Pagination } from '../components/Pagination'
 import { Button } from '../components/ui/Button'
 import { buttonClass } from '../components/ui/buttonStyles'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { EpisodeStepper } from '../components/ui/EpisodeStepper'
 
 function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -375,27 +376,17 @@ export default function AnimeDetailPage() {
                     disabled={saveEntry.isPending || removeEntry.isPending}
                   />
                   {entry.data && anime.format !== 'MOVIE' && (
-                    <label className="flex items-center gap-2 text-sm text-ink-2">
-                      Episodes
-                      <input
-                        type="number"
-                        min={0}
-                        max={anime.episodes ?? 9999}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-ink-2">Episodes</span>
+                      <EpisodeStepper
                         value={entry.data.currentEpisode ?? 0}
+                        max={anime.episodes ?? undefined}
                         disabled={saveEntry.isPending}
-                        onChange={(e) => {
-                          const ep = Math.max(0, Number(e.target.value) || 0)
-                          const current = entry.data?.currentEpisode ?? 0
-                          if (ep === current || !entry.data) return
-                          saveEntry.mutate({ status: entry.data.status, currentEpisode: ep })
-                        }}
-                        className="w-20 rounded-md border border-control-border bg-control px-2 py-1.5 text-sm text-ink transition-colors focus:border-accent focus:outline-none disabled:opacity-50"
-                        aria-label="Current episode"
+                        onCommit={(ep) =>
+                          entry.data && saveEntry.mutate({ status: entry.data.status, currentEpisode: ep })
+                        }
                       />
-                      {anime.episodes !== null && (
-                        <span className="text-ink-3">of {anime.episodes}</span>
-                      )}
-                    </label>
+                    </div>
                   )}
                   {entry.data?.status === 'WATCHING' &&
                     anime.episodes !== null &&
@@ -437,27 +428,17 @@ export default function AnimeDetailPage() {
             {user && (
               <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
                 {entry.data && anime.format !== 'MOVIE' && (
-                  <label className="flex items-center gap-2 text-sm text-ink-2">
-                    Episodes
-                    <input
-                      type="number"
-                      min={0}
-                      max={anime.episodes ?? 9999}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-ink-2">Episodes</span>
+                    <EpisodeStepper
                       value={entry.data.currentEpisode ?? 0}
+                      max={anime.episodes ?? undefined}
                       disabled={saveEntry.isPending}
-                      onChange={(e) => {
-                        const ep = Math.max(0, Number(e.target.value) || 0)
-                        const current = entry.data?.currentEpisode ?? 0
-                        if (ep === current || !entry.data) return
-                        saveEntry.mutate({ status: entry.data.status, currentEpisode: ep })
-                      }}
-                      className="w-20 rounded-md border border-control-border bg-control px-2 py-1.5 text-sm text-ink transition-colors focus:border-accent focus:outline-none disabled:opacity-50"
-                      aria-label="Current episode"
+                      onCommit={(ep) =>
+                        entry.data && saveEntry.mutate({ status: entry.data.status, currentEpisode: ep })
+                      }
                     />
-                    {anime.episodes !== null && (
-                      <span className="text-ink-3">of {anime.episodes}</span>
-                    )}
-                  </label>
+                  </div>
                 )}
                 {entry.data?.status === 'WATCHING' &&
                   anime.episodes !== null &&

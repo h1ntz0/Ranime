@@ -3,6 +3,7 @@ import type { LibraryEntry, ListStatus } from '../../lib/types'
 import { displayTitle, formatScore } from '../../lib/format'
 import { Poster } from '../Poster'
 import { ProgressBar, StatusBadge } from '../StatusSelect'
+import { EpisodeInput } from '../ui/EpisodeInput'
 
 export function LibraryRow({
   entry,
@@ -68,18 +69,13 @@ export function LibraryRowActions({ entry, actions }: { entry: LibraryEntry; act
         <option value="PAUSED">Paused</option>
         <option value="DROPPED">Dropped</option>
       </select>
-      <input
-        type="number"
-        min={0}
-        max={entry.totalEpisodes ?? 9999}
+      <EpisodeInput
         value={entry.currentEpisode}
+        max={entry.totalEpisodes ?? 9999}
         disabled={actions.disabled}
-        onChange={(e) => {
-          const ep = Math.max(0, Number(e.target.value) || 0)
-          if (ep !== entry.currentEpisode) actions.onEpisode(ep)
-        }}
+        onCommit={actions.onEpisode}
         className="w-16 rounded-sm border border-line bg-surface px-2 py-1.5 text-xs text-ink transition-colors focus:border-accent focus:outline-none disabled:opacity-50"
-        aria-label={`Current episode for ${displayTitle(entry.anime.title)}`}
+        ariaLabel={`Current episode for ${displayTitle(entry.anime.title)}`}
       />
       <button
         type="button"
