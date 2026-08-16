@@ -1,0 +1,37 @@
+{
+  "name": "animelist-local",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Anime discovery, catalog, tracking, rating and review platform. Local-first, powered by AniList.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm run dev -w @animelist/api\" \"npm run dev -w @animelist/web\"",
+    "build": "npm run build -w @animelist/api && npm run build -w @animelist/web",
+    "typecheck": "npm run typecheck -w @animelist/shared && npm run typecheck -w @animelist/api && npm run typecheck -w @animelist/web",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test -w @animelist/api && npm run test -w @animelist/web",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:generate": "npm run db:generate -w @animelist/api",
+    "db:migrate": "npm run db:migrate -w @animelist/api",
+    "db:seed": "tsx database/seed/index.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "concurrently": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

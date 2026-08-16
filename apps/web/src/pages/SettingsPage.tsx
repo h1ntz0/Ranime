@@ -1,0 +1,184 @@
+import { useState, type FormEvent } from 'react'
+import { changePassword, updateProfile, uploadAvatar } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { Poster } from '../components/Poster'
+import { Field } from '../components/ui/Field'
+import { Input } from '../components/ui/Input'
+import { Button } from '../components/ui/Button'
+
+export default function SettingsPage() {
+  const { user, setUser } = useAuth()
+  const { toast } = useToast()
+
+  const [username, setUsername] = useState(user?.username ?? '')
+  const [email, setEmail] = useState(user?.email ?? '')
+  const [profileError, setProfileError] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  const [uploading, setUploading] = useState(false)
+
+  const me = user
+  if (!me) return null
+
+  async function onProfileSubmit(e: FormEvent) {
+    e.preventDefault()
+    setProfileError('')
+    setSavingProfile(true)
+    try {
+      const updated = await updateProfile({ username: username.trim(), email: email.trim() })
+      setUser(updated)
+      toast('Profile updated')
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'Update failed')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  async function onPasswordSubmit(e: FormEvent) {
+    e.preventDefault()
+    setPasswordError('')
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+    setSavingPassword(true)
+    try {
+      await changePassword({ currentPassword, newPassword })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      toast('Password changed')
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Password change failed')
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
+  async function onAvatarChange(file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const { avatarUrl } = await uploadAvatar(file)
+      if (!me) return
+      setUser({ ...me, avatarUrl })
+      toast('Avatar updated')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Avatar upload failed', 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-lg">
+      <h1 className="text-xl font-semibold tracking-tight text-ink">Settings</h1>
+
+      <section aria-label="Profile" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+        <h2 className="text-sm font-semibold text-ink">Profile</h2>
+        <div className="mt-4 flex items-center gap-3">
+          <Poster src={me.avatarUrl} alt="" className="h-14 w-14 rounded-full" />
+          <div>
+            <label className="text-sm text-ink-2">Avatar</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={uploading}
+              onChange={(e) => onAvatarChange(e.target.files?.[0])}
+              className="block text-sm text-ink-3 file:mr-3 file:rounded-sm file:border-0 file:bg-surface-raised file:px-3 file:py-1.5 file:text-sm file:text-ink transition-colors hover:file:bg-surface-hover disabled:opacity-50"
+              aria-label="Upload avatar image"
+            />
+            <p className="mt-1 text-xs text-ink-4">JPEG, PNG or WebP, up to 2 MB.</p>
+          </div>
+        </div>
+        <form onSubmit={onProfileSubmit} className="mt-2" noValidate>
+          <Field label="Username" htmlFor="set-username" className="mt-4">
+            <Input
+              id="set-username"
+              type="text"
+              required
+              minLength={3}
+              maxLength={32}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </Field>
+          <Field label="Email" htmlFor="set-email" className="mt-4">
+            <Input
+              id="set-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Field>
+          {profileError ? (
+            <p role="alert" className="mt-2 text-sm text-danger">
+              {profileError}
+            </p>
+          ) : null}
+          <Button type="submit" disabled={savingProfile} className="mt-4">
+            {savingProfile ? 'Saving…' : 'Save profile'}
+          </Button>
+        </form>
+      </section>
+
+      <section aria-label="Password" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+        <h2 className="text-sm font-semibold text-ink">Change password</h2>
+        <form onSubmit={onPasswordSubmit} className="mt-2" noValidate>
+          <Field label="Current password" htmlFor="set-current" className="mt-4">
+            <Input
+              id="set-current"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </Field>
+          <Field label="New password" htmlFor="set-new" className="mt-4">
+            <Input
+              id="set-new"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </Field>
+          <Field label="Confirm new password" htmlFor="set-confirm" className="mt-4">
+            <Input
+              id="set-confirm"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </Field>
+          {passwordError ? (
+            <p role="alert" className="mt-2 text-sm text-danger">
+              {passwordError}
+            </p>
+          ) : null}
+          <Button type="submit" disabled={savingPassword} className="mt-4">
+            {savingPassword ? 'Changing…' : 'Change password'}
+          </Button>
+        </form>
+      </section>
+    </div>
+  )
+}
