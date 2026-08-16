@@ -1,6 +1,6 @@
 # Ranime
 
-Anime discovery, catalog, tracking, rating and review platform — **local-first**, powered by the
+Anime discovery, catalog, tracking, rating and review platform, **local-first**, powered by the
 AniList GraphQL API and a local PostgreSQL database.
 
 > Status: All milestones (M1–M11) complete — catalog sync, auth, library tracking, watchlist,
