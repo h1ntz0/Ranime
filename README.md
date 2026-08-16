@@ -24,18 +24,18 @@ Docs: [Cara Menjalankan (panduan lengkap)](RUNBOOK.md) · [Architecture](ARCHITE
 
 ## Architecture
 
-```
-Browser
-   |
-   v
-Frontend (apps/web, :3000)
-   |
-   v  /api (Vite dev proxy)
-Backend (apps/api, :4000)
-   |
-   +---- PostgreSQL (:5432, Docker)
-   |
-   +---- AniList GraphQL API (search + detail sync)
+```mermaid
+flowchart TD
+    A[Browser] -->|HTTP| B[Frontend\napps/web · :3000]
+    B -->|/api · Vite dev proxy| C[Backend\napps/api · :4000]
+    C -->|SQL| D[(PostgreSQL\n:5432 · Docker)]
+    C -->|GraphQL| E[AniList API\nsearch + detail sync]
+
+    style A fill:#1a1a2e,stroke:#e94560,color:#fff
+    style B fill:#16213e,stroke:#0f3460,color:#fff
+    style C fill:#0f3460,stroke:#533483,color:#fff
+    style D fill:#1a1a2e,stroke:#e94560,color:#fff
+    style E fill:#533483,stroke:#e94560,color:#fff
 ```
 
 Browser never talks to AniList directly — all external data flows through the backend, is
