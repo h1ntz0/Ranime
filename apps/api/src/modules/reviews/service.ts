@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
@@ -92,7 +92,7 @@ export class ReviewService {
     externalId: number,
     page: number,
     perPage: number,
-    opts: { hideSpoilers: boolean },
+    opts: { hideSpoilers: boolean; excludeUserId?: string },
   ): Promise<{
     items: ReviewView[]
     total: number
@@ -105,11 +105,16 @@ export class ReviewService {
       return { items: [], total: 0, page, perPage, hasNextPage: false }
     }
 
+    const filters = and(
+      eq(reviews.animeId, local.id),
+      opts.excludeUserId ? ne(reviews.userId, opts.excludeUserId) : undefined,
+    )
+
     const total = (
       await this.db
         .select({ n: sql<number>`count(*)::int` })
         .from(reviews)
-        .where(eq(reviews.animeId, local.id))
+        .where(filters)
     )[0]?.n ?? 0
 
     const rows = await this.db
@@ -124,7 +129,7 @@ export class ReviewService {
         userId: reviews.userId,
       })
       .from(reviews)
-      .where(eq(reviews.animeId, local.id))
+      .where(filters)
       .orderBy(desc(reviews.createdAt))
       .limit(perPage)
       .offset((page - 1) * perPage)

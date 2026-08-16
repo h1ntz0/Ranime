@@ -42,6 +42,7 @@ import { StatusSelect } from '../components/StatusSelect'
 import { Pagination } from '../components/Pagination'
 import { Button } from '../components/ui/Button'
 import { buttonClass } from '../components/ui/buttonStyles'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 
 function InfoItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -150,6 +151,7 @@ export default function AnimeDetailPage() {
   const [reviewPage, setReviewPage] = useState(1)
   const [editingReview, setEditingReview] = useState(false)
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const detail = useQuery({
     queryKey: ['anime', animeId],
@@ -251,8 +253,12 @@ export default function AnimeDetailPage() {
       invalidate()
       toast('Review deleted')
       setEditingReview(false)
+      setDeleteTarget(null)
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Failed to delete review', 'error'),
+    onError: (e) => {
+      setDeleteTarget(null)
+      toast(e instanceof Error ? e.message : 'Failed to delete review', 'error')
+    },
   })
 
   if (Number.isNaN(animeId)) return <ErrorState message="Invalid anime ID." />
@@ -737,9 +743,7 @@ export default function AnimeDetailPage() {
                 review={myReview.data}
                 canEdit
                 onEdit={() => setEditingReview(true)}
-                onDelete={() => {
-                  if (window.confirm('Delete your review?')) deleteReviewMutation.mutate(myReview.data!.id)
-                }}
+                onDelete={() => setDeleteTarget(myReview.data!.id)}
               />
             ) : reviewFormOpen || editingReview ? (
               <ReviewForm
@@ -770,7 +774,7 @@ export default function AnimeDetailPage() {
           <Skeleton className="h-32 w-full" />
         ) : reviews.isError ? (
           <ErrorState message="Reviews are temporarily unavailable." />
-        ) : reviews.data.items.length === 0 ? (
+        ) : reviews.data.total === 0 && !myReview.data ? (
           <EmptyState title="No reviews yet" hint="Be the first to write a review for this anime." />
         ) : (
           <>
@@ -784,9 +788,7 @@ export default function AnimeDetailPage() {
                     setEditingReview(true)
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
-                  onDelete={() => {
-                    if (window.confirm('Delete your review?')) deleteReviewMutation.mutate(r.id)
-                  }}
+                  onDelete={() => setDeleteTarget(r.id)}
                 />
               ))}
             </div>
@@ -800,6 +802,16 @@ export default function AnimeDetailPage() {
           </>
         )}
       </Section>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Review?"
+        description="Are you sure you want to delete this review? This action cannot be undone."
+        confirmLabel="Delete"
+        confirming={deleteReviewMutation.isPending}
+        onConfirm={() => deleteTarget && deleteReviewMutation.mutate(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

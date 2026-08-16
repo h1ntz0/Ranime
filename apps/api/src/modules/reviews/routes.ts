@@ -52,11 +52,12 @@ export async function reviewRoutes(
     return reply.code(204).send()
   })
 
-  app.get('/anime/:id/reviews', async (request, reply) => {
+  app.get('/anime/:id/reviews', { preHandler: optionalAuth(app.authService) }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params)
     const query = pageQuerySchema.parse(request.query)
     const result = await reviewService.listForAnime(id, query.page ?? 1, query.limit ?? 10, {
       hideSpoilers: true,
+      excludeUserId: request.user?.id,
     })
     return sendPage(reply, result)
   })
