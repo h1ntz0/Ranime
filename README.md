@@ -8,6 +8,8 @@ AniList GraphQL API and a local PostgreSQL database.
 
 Docs: [Cara Menjalankan (panduan lengkap)](RUNBOOK.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Contributing](CONTRIBUTING.md) · License: MIT
 
+![Ranime Homepage](docs/screenshots/home.png)
+
 ## Tech Stack
 
 | Layer    | Technology                                                          |
