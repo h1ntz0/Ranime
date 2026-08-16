@@ -1,6 +1,6 @@
 # Panduan Menjalankan Ranime (Web + API)
 
-Tutorial lengkap cara menjalankan website Ranime di lokal. Ikuti urutannya — dari nol sampai website kebuka di browser.
+Tutorial lengkap cara menjalankan website Ranime di lokal. Ikuti urutannya: dari nol sampai website kebuka di browser.
 
 ---
 
@@ -51,7 +51,7 @@ FRONTEND_URL=http://localhost:3000
 
 ## 3. Menyalakan Database (PostgreSQL)
 
-Database jalan di Docker — wajib dinyalakan **sebelum** API:
+Database jalan di Docker, wajib dinyalakan **sebelum** API:
 
 ```bash
 # Nyalakan container database (nama: animelist-postgres)
@@ -61,7 +61,7 @@ npm run db:up
 docker ps
 ```
 
-### Pertama kali saja — migrasi + seed
+### Pertama kali saja: migrasi + seed
 
 ```bash
 # Buat tabel-tabel di database
@@ -157,7 +157,7 @@ Buka **http://localhost:3000** → login `flowuser@example.local` / `password123
 
 ## 10. Catatan
 
-- API berjalan dengan `tsx watch` — **setiap edit file di `apps/api/src/` otomatis di-restart**.
-- Web berjalan dengan Vite dev — edit file di `apps/web/src/` langsung terlihat di browser (HMR).
+- API berjalan dengan `tsx watch`: **setiap edit file di `apps/api/src/` otomatis di-restart**.
+- Web berjalan dengan Vite dev: edit file di `apps/web/src/` langsung terlihat di browser (HMR).
 - Semua data dari AniList disinkronkan dan disimpan lokal di PostgreSQL; browser tidak pernah akses AniList langsung.
 - Verifikasi cepat API: `curl http://localhost:4000/api/health`
