@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { sendData } from '../../lib/http.js'
+import { sendData, sendPage } from '../../lib/http.js'
 import { optionalAuth } from '../auth/helpers.js'
 import type { RatingService } from './service.js'
 
@@ -66,4 +66,10 @@ export async function ratingRoutes(
       })
     },
   )
+
+  app.get('/ratings/me', { preHandler: app.requireAuth }, async (request, reply) => {
+    const query = pageQuerySchema.parse(request.query)
+    const result = await ratingService.myRatings(request.user!.id, query.page ?? 1, query.limit ?? 20)
+    return sendPage(reply, result)
+  })
 }

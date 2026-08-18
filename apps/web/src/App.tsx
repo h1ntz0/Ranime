@@ -8,6 +8,7 @@ import TopPage from './pages/TopPage'
 import SeasonPage from './pages/SeasonPage'
 import GenresPage from './pages/GenresPage'
 import GenreDetailPage from './pages/GenreDetailPage'
+import StudioDetailPage from './pages/StudioDetailPage'
 import AiringPage from './pages/AiringPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -16,6 +17,8 @@ import LibraryPage from './pages/LibraryPage'
 import StatisticsPage from './pages/StatisticsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import MyRatingsPage from './pages/MyRatingsPage'
+import MyReviewsPage from './pages/MyReviewsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -29,6 +32,7 @@ export default function App() {
         <Route path="/season" element={<SeasonPage />} />
         <Route path="/genres" element={<GenresPage />} />
         <Route path="/genres/:slug" element={<GenreDetailPage />} />
+        <Route path="/studios/:slug" element={<StudioDetailPage />} />
         <Route path="/airing" element={<AiringPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -53,6 +57,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <StatisticsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-ratings"
+          element={
+            <ProtectedRoute>
+              <MyRatingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-reviews"
+          element={
+            <ProtectedRoute>
+              <MyReviewsPage />
             </ProtectedRoute>
           }
         />

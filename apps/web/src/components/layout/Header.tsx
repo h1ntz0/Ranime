@@ -39,7 +39,7 @@ export function Header() {
   const links = user ? [...NAV, { to: '/library', label: 'Library' }] : NAV
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-2">
           <Link to="/" className="text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent-strong" aria-label="Ranime home">
@@ -96,6 +96,22 @@ export function Header() {
                       className="block px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-surface hover:text-ink"
                     >
                       Watchlist
+                    </Link>
+                    <Link
+                      to="/my-ratings"
+                      role="menuitem"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-surface hover:text-ink"
+                    >
+                      My Ratings
+                    </Link>
+                    <Link
+                      to="/my-reviews"
+                      role="menuitem"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-surface hover:text-ink"
+                    >
+                      My Reviews
                     </Link>
                     <Link
                       to="/settings"
@@ -187,6 +203,12 @@ export function Header() {
                 </NavLink>
                 <NavLink to="/statistics" className={linkClass} onClick={() => setOpen(false)}>
                   Statistics
+                </NavLink>
+                <NavLink to="/my-ratings" className={linkClass} onClick={() => setOpen(false)}>
+                  My Ratings
+                </NavLink>
+                <NavLink to="/my-reviews" className={linkClass} onClick={() => setOpen(false)}>
+                  My Reviews
                 </NavLink>
                 <NavLink to={`/profile/${user.username}`} className={linkClass} onClick={() => setOpen(false)}>
                   Profile

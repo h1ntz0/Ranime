@@ -90,7 +90,7 @@
   }
 
   body {
-    @apply bg-background text-ink antialiased;
+    @apply bg-background text-ink antialiased touch-manipulation;
   }
 
   ::selection {

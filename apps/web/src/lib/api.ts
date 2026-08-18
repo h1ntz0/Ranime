@@ -1,16 +1,21 @@
 import type {
+  ActivityItem,
   AnimeCard,
   AnimeDetail,
   Character,
   Genre,
   LibraryEntry,
   ListStatus,
+  MyRating,
+  MyReview,
   Paged,
   RatingAggregate,
+  RecentReview,
   Relation,
   Review,
   StaffMember,
   Statistics,
+  StudioSummary,
   User,
   UserProfile,
 } from './types'
@@ -118,6 +123,18 @@ export function fetchTop(category: string, page: number, signal?: AbortSignal): 
 
 export function fetchAiring(page: number, signal?: AbortSignal): Promise<Paged<AnimeCard>> {
   return request(`/airing${qs({ page })}`, { signal })
+}
+
+export function fetchStudios(signal?: AbortSignal): Promise<StudioSummary[]> {
+  return request('/studios', { signal })
+}
+
+export function fetchStudioAnime(
+  slug: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<Paged<AnimeCard>> {
+  return request(`/studios/${encodeURIComponent(slug)}${qs({ page })}`, { signal })
 }
 
 /* ---------- auth ---------- */
@@ -246,4 +263,28 @@ export function fetchMyReview(animeId: number): Promise<Review | null> {
 
 export function fetchStatistics(signal?: AbortSignal): Promise<Statistics> {
   return request('/statistics', { signal })
+}
+
+/* ---------- activity ---------- */
+
+export function fetchUserActivity(
+  username: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<Paged<ActivityItem>> {
+  return request(`/users/${encodeURIComponent(username)}/activity${qs({ page })}`, { signal })
+}
+
+/* ---------- my ratings / reviews ---------- */
+
+export function fetchMyRatings(page: number, signal?: AbortSignal): Promise<Paged<MyRating>> {
+  return request(`/ratings/me${qs({ page })}`, { signal })
+}
+
+export function fetchMyReviews(page: number, signal?: AbortSignal): Promise<Paged<MyReview>> {
+  return request(`/reviews/me${qs({ page })}`, { signal })
+}
+
+export function fetchRecentReviews(page: number, signal?: AbortSignal): Promise<Paged<RecentReview>> {
+  return request(`/reviews/recent${qs({ page })}`, { signal })
 }

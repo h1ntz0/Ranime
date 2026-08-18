@@ -59,7 +59,7 @@ export default function TopPage() {
               {data.data.total.toLocaleString()} anime ranked by{' '}
               {CATEGORIES.find((c) => c.value === category)?.label.toLowerCase()}
             </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {data.data.items.map((item, i) => (
                 <div key={item.id} className="relative">
                   {item.averageScore !== null && (

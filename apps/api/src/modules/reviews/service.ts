@@ -26,7 +26,13 @@ export interface ReviewView {
 export class ReviewService {
   private db: NodePgDatabase<Record<string, unknown>>
 
-  constructor(private options: { pool: Pool; db?: NodePgDatabase<Record<string, unknown>> }) {
+  constructor(
+    private options: {
+      pool: Pool
+      db?: NodePgDatabase<Record<string, unknown>>
+      onActivity?: (userId: string, type: 'REVIEWED', animeId: number, payload?: Record<string, unknown>, reviewId?: string) => void
+    },
+  ) {
     this.db = options.db ?? drizzle(options.pool)
   }
 
@@ -56,6 +62,7 @@ export class ReviewService {
         containsSpoiler: input.containsSpoiler,
       })
       .returning()
+    this.options.onActivity?.(userId, 'REVIEWED', local.id, { rating: input.rating }, row!.id)
     return this.toView(row!)
   }
 
@@ -174,6 +181,169 @@ export class ReviewService {
       .where(and(eq(reviews.userId, userId), eq(reviews.animeId, local.id)))
     if (!row) return null
     return this.toView(row)
+  }
+
+  async myReviews(
+    userId: string,
+    page: number,
+    perPage: number,
+  ): Promise<{
+    items: (ReviewView & { anime: { id: number; title: { romaji: string | null; english: string | null; native: string | null }; coverImage: string | null } })[]
+    total: number
+    page: number
+    perPage: number
+    hasNextPage: boolean
+  }> {
+    const total =
+      (await this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(reviews)
+        .where(eq(reviews.userId, userId)))[0]?.n ?? 0
+
+    const rows = await this.db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        title: reviews.title,
+        content: reviews.content,
+        containsSpoiler: reviews.containsSpoiler,
+        createdAt: reviews.createdAt,
+        updatedAt: reviews.updatedAt,
+        externalId: anime.externalId,
+        titleRomaji: anime.titleRomaji,
+        titleEnglish: anime.titleEnglish,
+        titleNative: anime.titleNative,
+        coverImage: anime.coverImage,
+      })
+      .from(reviews)
+      .innerJoin(anime, eq(anime.id, reviews.animeId))
+      .where(eq(reviews.userId, userId))
+      .orderBy(desc(reviews.createdAt))
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+
+    const user = (
+      await this.db
+        .select({ id: users.id, username: users.username, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(eq(users.id, userId))
+    )[0]
+
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        rating: Number(r.rating),
+        title: r.title,
+        content: r.content,
+        containsSpoiler: r.containsSpoiler,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        user: {
+          id: userId,
+          username: user?.username ?? 'unknown',
+          avatarUrl: user?.avatarUrl ?? null,
+        },
+        anime: {
+          id: r.externalId,
+          title: { romaji: r.titleRomaji, english: r.titleEnglish, native: r.titleNative },
+          coverImage: r.coverImage,
+        },
+      })),
+      total,
+      page,
+      perPage,
+      hasNextPage: page * perPage < total,
+    }
+  }
+
+  async recent(
+    page: number,
+    perPage: number,
+  ): Promise<{
+    items: (ReviewView & { anime: { id: number; title: { romaji: string | null; english: string | null; native: string | null }; coverImage: string | null } })[]
+    total: number
+    page: number
+    perPage: number
+    hasNextPage: boolean
+  }> {
+    const total = (
+      await this.db.select({ n: sql<number>`count(*)::int` }).from(reviews)
+    )[0]?.n ?? 0
+
+    const rows = await this.db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        title: reviews.title,
+        content: reviews.content,
+        containsSpoiler: reviews.containsSpoiler,
+        createdAt: reviews.createdAt,
+        updatedAt: reviews.updatedAt,
+        userId: reviews.userId,
+        animeId: reviews.animeId,
+      })
+      .from(reviews)
+      .orderBy(desc(reviews.createdAt))
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+
+    const userIds = [...new Set(rows.map((r) => r.userId))]
+    const userRows = userIds.length
+      ? await this.db
+          .select({ id: users.id, username: users.username, avatarUrl: users.avatarUrl })
+          .from(users)
+          .where(inArray(users.id, userIds))
+      : []
+    const userById = new Map(userRows.map((u) => [u.id, u]))
+
+    const animeIds = [...new Set(rows.map((r) => r.animeId))]
+    const animeRows = animeIds.length
+      ? await this.db
+          .select({
+            id: anime.id,
+            externalId: anime.externalId,
+            titleRomaji: anime.titleRomaji,
+            titleEnglish: anime.titleEnglish,
+            titleNative: anime.titleNative,
+            coverImage: anime.coverImage,
+          })
+          .from(anime)
+          .where(inArray(anime.id, animeIds))
+      : []
+    const animeById = new Map(animeRows.map((a) => [a.id, a]))
+
+    return {
+      items: rows.map((r) => {
+        const a = animeById.get(r.animeId)
+        return {
+          id: r.id,
+          rating: Number(r.rating),
+          title: r.title,
+          content: r.containsSpoiler ? '[Spoiler hidden]' : r.content,
+          containsSpoiler: r.containsSpoiler,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+          user: {
+            id: r.userId,
+            username: userById.get(r.userId)?.username ?? 'unknown',
+            avatarUrl: userById.get(r.userId)?.avatarUrl ?? null,
+          },
+          anime: {
+            id: a?.externalId ?? 0,
+            title: {
+              romaji: a?.titleRomaji ?? null,
+              english: a?.titleEnglish ?? null,
+              native: a?.titleNative ?? null,
+            },
+            coverImage: a?.coverImage ?? null,
+          },
+        }
+      }),
+      total,
+      page,
+      perPage,
+      hasNextPage: page * perPage < total,
+    }
   }
 
   private async getRow(reviewId: string) {

@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -327,6 +328,34 @@ export const reviews = pgTable(
   ],
 )
 
+export const activityTypes = [
+  'LIBRARY_ADDED',
+  'STATUS_CHANGED',
+  'COMPLETED',
+  'RATED',
+  'REVIEWED',
+] as const
+
+export const userActivity = pgTable(
+  'user_activity',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: activityTypes }).notNull(),
+    animeId: integer('anime_id')
+      .notNull()
+      .references(() => anime.id, { onDelete: 'cascade' }),
+    reviewId: uuid('review_id').references(() => reviews.id, { onDelete: 'cascade' }),
+    payload: jsonb('payload'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('user_activity_user_id_created_at_idx').on(t.userId, t.createdAt),
+  ],
+)
+
 /* ---------- Relations (drizzle query helpers) ---------- */
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -405,6 +434,11 @@ export const userAnimeListsRelations = relations(userAnimeLists, ({ one }) => ({
   user: one(users, { fields: [userAnimeLists.userId], references: [users.id] }),
   anime: one(anime, { fields: [userAnimeLists.animeId], references: [anime.id] }),
 }))
+export const userActivityRelations = relations(userActivity, ({ one }) => ({
+  user: one(users, { fields: [userActivity.userId], references: [users.id] }),
+  anime: one(anime, { fields: [userActivity.animeId], references: [anime.id] }),
+  review: one(reviews, { fields: [userActivity.reviewId], references: [reviews.id] }),
+}))
 
 /* ---------- Types ---------- */
 
@@ -417,3 +451,4 @@ export type Staff = typeof staff.$inferSelect
 export type UserAnimeList = typeof userAnimeLists.$inferSelect
 export type Rating = typeof ratings.$inferSelect
 export type Review = typeof reviews.$inferSelect
+export type UserActivity = typeof userActivity.$inferSelect

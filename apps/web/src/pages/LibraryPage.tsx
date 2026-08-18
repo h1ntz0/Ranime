@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { fetchGenres, fetchLibrary, removeWatchlist, updateWatchlist } from '../lib/api'
+import { fetchGenres, fetchLibrary, fetchStatusCounts, removeWatchlist, updateWatchlist } from '../lib/api'
 import { LibraryRow, LibraryRowActions } from '../components/library/LibraryRow'
 import { Pagination } from '../components/Pagination'
 import { Skeleton } from '../components/Skeleton'
@@ -74,6 +74,11 @@ export default function LibraryPage() {
 
   const genres = useQuery({ queryKey: ['genres'], queryFn: ({ signal }) => fetchGenres(signal) })
 
+  const counts = useQuery({
+    queryKey: ['library', 'counts'],
+    queryFn: ({ signal }) => fetchStatusCounts(signal),
+  })
+
   const mutation = useMutation({
     mutationFn: ({
       animeId,
@@ -132,18 +137,32 @@ export default function LibraryPage() {
       )}
 
       <div role="tablist" aria-label="Library status" className="mt-6 flex gap-1 overflow-x-auto rounded-sm border border-line bg-surface/60 p-1">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            role="tab"
-            aria-selected={status === t.value}
-            className={tabClass(status === t.value)}
-            onClick={() => update({ status: t.value, page: 1 })}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const c = counts.data
+            ? t.value === ''
+              ? Object.values(counts.data).reduce((a, b) => a + b, 0)
+              : (counts.data[t.value as ListStatus] ?? 0)
+            : undefined
+          return (
+            <button
+              key={t.value}
+              type="button"
+              role="tab"
+              aria-selected={status === t.value}
+              className={tabClass(status === t.value)}
+              onClick={() => update({ status: t.value, page: 1 })}
+            >
+              <span className="flex items-center gap-1.5">
+                {t.label}
+                {c !== undefined && c > 0 && (
+                  <span className="rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] leading-none text-ink-3">
+                    {c}
+                  </span>
+                )}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

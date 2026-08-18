@@ -832,6 +832,57 @@ export class AnimeService {
     return this.db.select({ id: genres.id, name: genres.name, slug: genres.slug }).from(genres).orderBy(genres.name)
   }
 
+  async studiosList(): Promise<{ name: string; slug: string; count: number }[]> {
+    const rows = await this.db
+      .select({ name: studios.name, count: sql<number>`count(*)::int` })
+      .from(studios)
+      .innerJoin(animeStudios, eq(animeStudios.studioId, studios.id))
+      .groupBy(studios.name)
+      .orderBy(desc(sql`count(*)`), studios.name)
+    return rows.map((r) => ({ name: r.name, slug: slugify(r.name), count: r.count }))
+  }
+
+  async studioAnime(
+    slug: string,
+    page: number,
+    perPage: number,
+  ): Promise<PagedResult<AnimeCardView>> {
+    const all = await this.db.select({ id: studios.id, name: studios.name }).from(studios)
+    const studio = all.find((s) => slugify(s.name) === slug)
+    if (!studio) return { items: [], total: 0, page, perPage, hasNextPage: false }
+
+    const total =
+      (await this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(animeStudios)
+        .where(eq(animeStudios.studioId, studio.id)))[0]?.n ?? 0
+
+    const paged = await this.db
+      .select({ id: animeStudios.animeId })
+      .from(animeStudios)
+      .where(eq(animeStudios.studioId, studio.id))
+      .orderBy(animeStudios.isMain)
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+
+    if (paged.length === 0) return { items: [], total, page, perPage, hasNextPage: false }
+
+    const rows = await this.db
+      .select()
+      .from(anime)
+      .where(inArray(anime.id, paged.map((p) => p.id)))
+      .orderBy(desc(anime.popularity))
+    const decorated = await this.decorateWithRelations(rows)
+
+    return {
+      items: decorated,
+      total,
+      page,
+      perPage,
+      hasNextPage: page * perPage < total,
+    }
+  }
+
   async airing(page = 1, perPage = 20): Promise<PagedResult<AnimeCardView>> {
     const key = `airing:${page}:${perPage}`
     const cached = this.caches.list.get(key)

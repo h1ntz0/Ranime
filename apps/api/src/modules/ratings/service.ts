@@ -14,7 +14,13 @@ export interface RatingAggregate {
 export class RatingService {
   private db: NodePgDatabase<Record<string, unknown>>
 
-  constructor(private options: { pool: Pool; db?: NodePgDatabase<Record<string, unknown>> }) {
+  constructor(
+    private options: {
+      pool: Pool
+      db?: NodePgDatabase<Record<string, unknown>>
+      onActivity?: (userId: string, type: 'RATED', animeId: number, payload?: Record<string, unknown>) => void
+    },
+  ) {
     this.db = options.db ?? drizzle(options.pool)
   }
 
@@ -25,6 +31,13 @@ export class RatingService {
     const local = await this.findLocalAnime(externalId)
     if (!local) throw notFound('Anime not found')
 
+    const previous = (
+      await this.db
+        .select({ score: ratings.score })
+        .from(ratings)
+        .where(and(eq(ratings.userId, userId), eq(ratings.animeId, local.id)))
+    )[0]
+
     await this.db
       .insert(ratings)
       .values({ userId, animeId: local.id, score: String(score), updatedAt: sql`now()` })
@@ -32,6 +45,10 @@ export class RatingService {
         target: [ratings.userId, ratings.animeId],
         set: { score: String(score), updatedAt: sql`now()` },
       })
+
+    if (this.options.onActivity && Number(previous?.score) !== score) {
+      this.options.onActivity(userId, 'RATED', local.id, { score })
+    }
     return score
   }
 
@@ -105,6 +122,68 @@ export class RatingService {
 
     return {
       items: rows.map((r) => ({ id: r.id, score: Number(r.score), username: r.username, createdAt: r.createdAt })),
+      total,
+      page,
+      perPage,
+      hasNextPage: page * perPage < total,
+    }
+  }
+
+  async myRatings(
+    userId: string,
+    page: number,
+    perPage: number,
+  ): Promise<{
+    items: {
+      id: string
+      score: number
+      createdAt: string
+      anime: { id: number; title: { romaji: string | null; english: string | null; native: string | null }; coverImage: string | null; format: string | null; averageScore: number | null }
+    }[]
+    total: number
+    page: number
+    perPage: number
+    hasNextPage: boolean
+  }> {
+    const total =
+      (await this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(ratings)
+        .where(eq(ratings.userId, userId)))[0]?.n ?? 0
+
+    const rows = await this.db
+      .select({
+        id: ratings.id,
+        score: ratings.score,
+        createdAt: ratings.createdAt,
+        externalId: anime.externalId,
+        titleRomaji: anime.titleRomaji,
+        titleEnglish: anime.titleEnglish,
+        titleNative: anime.titleNative,
+        coverImage: anime.coverImage,
+        format: anime.format,
+        averageScore: anime.averageScore,
+      })
+      .from(ratings)
+      .innerJoin(anime, eq(anime.id, ratings.animeId))
+      .where(eq(ratings.userId, userId))
+      .orderBy(desc(ratings.createdAt))
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        score: Number(r.score),
+        createdAt: r.createdAt.toISOString(),
+        anime: {
+          id: r.externalId,
+          title: { romaji: r.titleRomaji, english: r.titleEnglish, native: r.titleNative },
+          coverImage: r.coverImage,
+          format: r.format,
+          averageScore: r.averageScore,
+        },
+      })),
       total,
       page,
       perPage,
