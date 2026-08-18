@@ -17,21 +17,29 @@ const loginSchema = z.object({
 })
 
 export async function authRoutes(app: FastifyInstance, authService: AuthService): Promise<void> {
-  app.post('/auth/register', async (request, reply) => {
-    const input = registerSchema.parse(request.body)
-    const user = await authService.register(input)
-    const token = authService.signToken(user)
-    setSessionCookie(reply, token, app.env)
-    return reply.code(201).send({ data: toPublicUser(user) })
-  })
+  app.post(
+    '/auth/register',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = registerSchema.parse(request.body)
+      const user = await authService.register(input)
+      const token = authService.signToken(user)
+      setSessionCookie(reply, token, app.env)
+      return reply.code(201).send({ data: toPublicUser(user) })
+    },
+  )
 
-  app.post('/auth/login', async (request, reply) => {
-    const input = loginSchema.parse(request.body)
-    const user = await authService.login(input.email, input.password)
-    const token = authService.signToken(user)
-    setSessionCookie(reply, token, app.env)
-    return sendData(reply, toPublicUser(user))
-  })
+  app.post(
+    '/auth/login',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = loginSchema.parse(request.body)
+      const user = await authService.login(input.email, input.password)
+      const token = authService.signToken(user)
+      setSessionCookie(reply, token, app.env)
+      return sendData(reply, toPublicUser(user))
+    },
+  )
 
   app.post('/auth/logout', async (_request, reply) => {
     clearSessionCookie(reply)

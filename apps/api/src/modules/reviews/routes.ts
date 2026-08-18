@@ -68,4 +68,16 @@ export async function reviewRoutes(
     const review = await reviewService.myReview(request.user.id, id)
     return sendData(reply, review)
   })
+
+  app.get('/reviews/recent', async (request, reply) => {
+    const query = pageQuerySchema.parse(request.query)
+    const result = await reviewService.recent(query.page ?? 1, query.limit ?? 10)
+    return sendPage(reply, result)
+  })
+
+  app.get('/reviews/me', { preHandler: app.requireAuth }, async (request, reply) => {
+    const query = pageQuerySchema.parse(request.query)
+    const result = await reviewService.myReviews(request.user!.id, query.page ?? 1, query.limit ?? 10)
+    return sendPage(reply, result)
+  })
 }

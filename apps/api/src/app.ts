@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import cookie from '@fastify/cookie'
 import multipart from '@fastify/multipart'
 import staticFiles from '@fastify/static'
+import rateLimit from '@fastify/rate-limit'
 import type { Pool } from 'pg'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,6 +24,7 @@ import { LibraryService } from './modules/library/service.js'
 import { RatingService } from './modules/ratings/service.js'
 import { ReviewService } from './modules/reviews/service.js'
 import { StatisticsService } from './modules/statistics/service.js'
+import { ActivityService } from './modules/activity/service.js'
 import { errorHandler } from './plugins/errors.js'
 import { AnimeService } from './services/anime.service.js'
 import { AniListClient } from './integrations/anilist/client.js'
@@ -70,6 +72,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.decorate('optionalAuth', (request: FastifyRequest, reply: FastifyReply) =>
     optionalAuth(authService)(request, reply),
   )
+  const activityService = new ActivityService({ pool })
+  const onActivity: (
+    userId: string,
+    type: Parameters<typeof activityService.log>[1],
+    animeId: number,
+    payload?: Record<string, unknown>,
+    reviewId?: string,
+  ) => void = (userId, type, animeId, payload, reviewId) =>
+    activityService.log(userId, type, animeId, { payload, reviewId })
 
   errorHandler(app)
 
@@ -83,6 +94,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
     root: UPLOAD_ROOT,
     prefix: '/uploads/',
   })
+  app.register(rateLimit, {
+    global: true,
+    max: 300,
+    timeWindow: '1 minute',
+  })
 
   app.setNotFoundHandler((request, reply) => {
     reply.code(404).send({
@@ -94,20 +110,20 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.register(animeRoutes, { prefix: '/api' })
   app.register(catalogRoutes, { prefix: '/api' })
   app.register(async (instance) => authRoutes(instance, authService), { prefix: '/api' })
-  app.register(async (instance) => usersRoutes(instance, authService), { prefix: '/api' })
+  app.register(async (instance) => usersRoutes(instance, authService, activityService), { prefix: '/api' })
   app.register(
     async (instance) =>
-      watchlistRoutes(instance, options.libraryService ?? new LibraryService({ pool })),
+      watchlistRoutes(instance, options.libraryService ?? new LibraryService({ pool, onActivity })),
     { prefix: '/api' },
   )
   app.register(
     async (instance) =>
-      ratingRoutes(instance, options.ratingService ?? new RatingService({ pool })),
+      ratingRoutes(instance, options.ratingService ?? new RatingService({ pool, onActivity })),
     { prefix: '/api' },
   )
   app.register(
     async (instance) =>
-      reviewRoutes(instance, options.reviewService ?? new ReviewService({ pool })),
+      reviewRoutes(instance, options.reviewService ?? new ReviewService({ pool, onActivity })),
     { prefix: '/api' },
   )
   app.register(

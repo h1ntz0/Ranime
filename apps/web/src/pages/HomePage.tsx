@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { fetchAnimeList, fetchAiring, fetchSeason } from '../lib/api'
+import { fetchAnimeList, fetchAiring, fetchLibrary, fetchRecentReviews, fetchSeason } from '../lib/api'
 import { AnimeCardGrid, AnimeCardView } from '../components/AnimeCard'
 import { CardGridSkeleton } from '../components/Skeleton'
 import { EmptyState, ErrorState } from '../components/States'
-import { displayTitle, formatScore, formatStatus } from '../lib/format'
+import { displayTitle, formatScore, formatStatus, timeAgo } from '../lib/format'
 import { Poster } from '../components/Poster'
 import { Spinner } from '../components/ui/Spinner'
 import { buttonClass } from '../components/ui/buttonStyles'
+import { LibraryRow } from '../components/library/LibraryRow'
 import { useAuth } from '../context/AuthContext'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
@@ -102,6 +103,17 @@ export default function HomePage() {
   const currentSeason = useQuery({
     queryKey: ['home', 'season', season],
     queryFn: ({ signal }) => fetchSeason(new Date().getFullYear(), season, 1, signal),
+  })
+
+  const continueWatching = useQuery({
+    queryKey: ['library', 'continue-watching'],
+    queryFn: ({ signal }) => fetchLibrary({ status: 'WATCHING', sort: 'RECENTLY_UPDATED', page: 1 }, signal),
+    enabled: !!user,
+  })
+
+  const recentReviews = useQuery({
+    queryKey: ['reviews', 'recent'],
+    queryFn: ({ signal }) => fetchRecentReviews(1, signal),
   })
 
   const heroSlides = (trending.data?.items ?? []).slice(0, 5)
@@ -254,6 +266,20 @@ export default function HomePage() {
         )}
       </section>
 
+      {user && continueWatching.data && continueWatching.data.items.length > 0 && (
+        <Section
+          title="Continue Watching"
+          subtitle="Pick up where you left off."
+          action={{ to: '/library', label: 'Library' }}
+        >
+          <ul className="space-y-3">
+            {continueWatching.data.items.slice(0, 5).map((entry) => (
+              <LibraryRow key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        </Section>
+      )}
+
       <Section
         title="Trending Now"
         subtitle="What everyone is watching right now."
@@ -337,6 +363,43 @@ export default function HomePage() {
         <SectionState state={sectionState(topRated)} emptyTitle="No top anime yet." skeletonCount={8} />
         {!topRated.isPending && !topRated.isError && topRated.data && topRated.data.items.length > 0 && (
           <AnimeCardGrid items={topRated.data.items} />
+        )}
+      </Section>
+
+      <Section
+        title="Latest Reviews"
+        subtitle="What the community is saying."
+      >
+        <SectionState state={sectionState(recentReviews)} emptyTitle="No reviews yet." skeletonCount={5} />
+        {!recentReviews.isPending && !recentReviews.isError && recentReviews.data && recentReviews.data.items.length > 0 && (
+          <ul className="space-y-3">
+            {recentReviews.data.items.slice(0, 5).map((r) => (
+              <li key={r.id}>
+                <div className="rounded-sm border border-line bg-surface/40 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      to={`/anime/${r.anime.id}`}
+                      className="flex min-w-0 items-center gap-3"
+                    >
+                      <Poster src={r.anime.coverImage} alt="" className="h-14 w-10 shrink-0 rounded-sm" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-ink">
+                          {displayTitle(r.anime.title)}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-ink-3">
+                          by {r.user.username} · {timeAgo(r.createdAt)}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-ink-2">{r.title}</p>
+                      </div>
+                    </Link>
+                    <span className="shrink-0 rounded-sm bg-positive-soft px-1.5 py-0.5 text-xs font-semibold text-positive">
+                      {r.rating.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </Section>
     </div>

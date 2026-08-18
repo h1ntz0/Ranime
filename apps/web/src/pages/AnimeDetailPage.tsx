@@ -496,9 +496,9 @@ export default function AnimeDetailPage() {
       )}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
-        <div>
+        <div className="min-w-0">
           <Section title="Synopsis">
-            <p className="max-w-prose whitespace-pre-line text-sm leading-relaxed text-ink-2">
+            <p className="max-w-prose whitespace-pre-line break-words text-sm leading-relaxed text-ink-2">
               {stripHtml(anime.description) || 'Synopsis unavailable.'}
             </p>
           </Section>
@@ -512,7 +512,26 @@ export default function AnimeDetailPage() {
               <InfoItem label="Start date" value={formatDate(anime.startDate)} />
               <InfoItem label="End date" value={formatDate(anime.endDate)} />
               <InfoItem label="Season" value={formatSeason(anime.season, anime.seasonYear) || '—'} />
-              <InfoItem label="Studios" value={anime.studios.length ? anime.studios.join(', ') : '—'} />
+              <InfoItem
+                label="Studios"
+                value={
+                  anime.studios.length ? (
+                    <span className="flex flex-wrap gap-x-2 gap-y-1">
+                      {anime.studios.map((s) => (
+                        <Link
+                          key={s}
+                          to={`/studios/${s.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                          className="text-accent underline-offset-2 transition-colors hover:text-accent-strong hover:underline"
+                        >
+                          {s}
+                        </Link>
+                      ))}
+                    </span>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
               <InfoItem label="Source" value={anime.source ? formatStatus(anime.source) : '—'} />
               <InfoItem label="Country" value={anime.country ?? '—'} />
               <InfoItem
@@ -585,7 +604,7 @@ export default function AnimeDetailPage() {
           </Section>
         </div>
 
-        <aside className="space-y-8">
+        <aside className="min-w-0 space-y-8">
           <Section title="Ratings">
             {ratings.isPending ? (
               <Skeleton className="h-32 w-full" />
@@ -706,7 +725,7 @@ export default function AnimeDetailPage() {
         ) : recommendations.data.items.length === 0 ? (
           <EmptyState title="No recommendations yet" />
         ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5">
             {recommendations.data.items.map((r) => (
               <AnimeCardView key={r.id} anime={r} />
             ))}

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { fetchUserProfile } from '../lib/api'
+import { fetchUserProfile, fetchUserActivity } from '../lib/api'
 import { Poster } from '../components/Poster'
 import { Skeleton } from '../components/Skeleton'
 import { ErrorState } from '../components/States'
+import { ActivityList } from '../components/ActivityList'
 import { StatCard } from '../components/ui/StatCard'
 import { buttonClass } from '../components/ui/buttonStyles'
 import { useAuth } from '../context/AuthContext'
@@ -14,6 +15,11 @@ export default function ProfilePage() {
   const profile = useQuery({
     queryKey: ['user', username],
     queryFn: ({ signal }) => fetchUserProfile(username!, signal),
+    enabled: !!username,
+  })
+  const activity = useQuery({
+    queryKey: ['user', username, 'activity'],
+    queryFn: ({ signal }) => fetchUserActivity(username!, 1, signal),
     enabled: !!username,
   })
 
@@ -68,12 +74,38 @@ export default function ProfilePage() {
       </div>
 
       {user?.id === p.id && (
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link to="/statistics" className={buttonClass('primary')}>
             View full statistics
           </Link>
+          <Link to="/my-ratings" className={buttonClass('secondary')}>
+            My Ratings
+          </Link>
+          <Link to="/my-reviews" className={buttonClass('secondary')}>
+            My Reviews
+          </Link>
         </div>
       )}
+
+      <section aria-label="Recent activity" className="mt-10">
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="h-4 w-1 rounded-full bg-accent" aria-hidden="true" />
+          <h2 className="text-lg font-semibold tracking-tight text-ink">Recent Activity</h2>
+        </div>
+        {activity.isPending ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        ) : activity.isError ? (
+          <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-4">
+            Activity is temporarily unavailable.
+          </p>
+        ) : (
+          <ActivityList items={activity.data.items} />
+        )}
+      </section>
     </div>
   )
 }

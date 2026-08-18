@@ -95,6 +95,7 @@ describe('database migration (from empty)', () => {
         'staff',
         'studios',
         'sync_logs',
+        'user_activity',
         'user_anime_lists',
         'users',
       ].sort(),

@@ -6,9 +6,10 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { AppError, notFound, unauthorized } from '../../lib/errors.js'
-import { sendData } from '../../lib/http.js'
+import { sendData, sendPage } from '../../lib/http.js'
 import { toPublicUser } from '../auth/helpers.js'
 import type { AuthService } from '../auth/service.js'
+import type { ActivityService } from '../activity/service.js'
 
 const UPLOAD_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../../uploads/avatars')
 
@@ -26,9 +27,12 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8).max(200),
 })
 
-export async function usersRoutes(app: FastifyInstance, authService: AuthService): Promise<void> {
-  app.get('/users/:username', async (request, reply) => {
-    const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
+export async function usersRoutes(
+  app: FastifyInstance,
+  authService: AuthService,
+  activityService?: ActivityService,
+): Promise<void> {
+  app.get('/users/:username', async (request, reply) => {    const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
     const user = await authService.getUserByUsername(username)
     if (!user) throw notFound(`User "${username}" not found`)
 
@@ -165,5 +169,15 @@ export async function usersRoutes(app: FastifyInstance, authService: AuthService
       user.id,
     ])
     return reply.code(204).send()
+  })
+
+  app.get('/users/:username/activity', async (request, reply) => {
+    const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
+    const query = z
+      .object({ page: z.coerce.number().int().min(1).optional(), limit: z.coerce.number().int().min(1).max(50).optional() })
+      .parse(request.query)
+    if (!activityService) throw notFound('Activity is not available')
+    const result = await activityService.listByUsername(username, query.page ?? 1, query.limit ?? 20)
+    return sendPage(reply, result)
   })
 }

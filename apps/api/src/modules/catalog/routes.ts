@@ -71,4 +71,16 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
     const result = await app.animeService.airing(query.page ?? 1, query.limit ?? 20)
     return sendPage(reply, result)
   })
+
+  app.get('/studios', async (_request, reply) => {
+    const result = await app.animeService.studiosList()
+    return sendData(reply, result)
+  })
+
+  app.get('/studios/:slug', async (request, reply) => {
+    const { slug } = genreSlugSchema.parse(request.params)
+    const query = topQuerySchema.omit({ category: true }).parse(request.query)
+    const result = await app.animeService.studioAnime(slug, query.page ?? 1, query.limit ?? 20)
+    return sendPage(reply, result)
+  })
 }

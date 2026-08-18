@@ -41,7 +41,13 @@ export interface LibraryListParams {
 export class LibraryService {
   private db: NodePgDatabase<Record<string, unknown>>
 
-  constructor(private options: { pool: Pool; db?: NodePgDatabase<Record<string, unknown>> }) {
+  constructor(
+    private options: {
+      pool: Pool
+      db?: NodePgDatabase<Record<string, unknown>>
+      onActivity?: (userId: string, type: 'LIBRARY_ADDED' | 'STATUS_CHANGED' | 'COMPLETED', animeId: number, payload?: Record<string, unknown>) => void
+    },
+  ) {
     this.db = options.db ?? drizzle(options.pool)
   }
 
@@ -52,6 +58,13 @@ export class LibraryService {
   ): Promise<void> {
     const local = await this.findLocalAnime(externalId)
     if (!local) throw notFound('Anime not found')
+
+    const previous = (
+      await this.db
+        .select({ status: userAnimeLists.status })
+        .from(userAnimeLists)
+        .where(and(eq(userAnimeLists.userId, userId), eq(userAnimeLists.animeId, local.id)))
+    )[0]
 
     const now = sql`now()`
     await this.db
@@ -79,6 +92,18 @@ export class LibraryService {
           updatedAt: now,
         },
       })
+
+    if (!this.options.onActivity) return
+    if (!previous) {
+      this.options.onActivity(userId, 'LIBRARY_ADDED', local.id)
+    } else if (previous.status !== input.status) {
+      this.options.onActivity(
+        userId,
+        input.status === 'COMPLETED' ? 'COMPLETED' : 'STATUS_CHANGED',
+        local.id,
+        input.status === 'COMPLETED' ? undefined : { status: input.status },
+      )
+    }
   }
 
   async remove(userId: string, externalId: number): Promise<void> {

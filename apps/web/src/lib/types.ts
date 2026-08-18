@@ -64,6 +64,12 @@ export interface Genre {
   slug: string
 }
 
+export interface StudioSummary {
+  name: string
+  slug: string
+  count: number
+}
+
 export interface LibraryEntry {
   id: string
   status: 'PLANNING' | 'WATCHING' | 'COMPLETED' | 'PAUSED' | 'DROPPED'
@@ -101,6 +107,36 @@ export interface Review {
   createdAt: string
   updatedAt: string
   user: { id: string; username: string; avatarUrl: string | null }
+}
+
+export interface MyRating {
+  id: string
+  score: number
+  createdAt: string
+  anime: {
+    id: number
+    title: AnimeCard['title']
+    coverImage: string | null
+    format: string | null
+    averageScore: number | null
+  }
+}
+
+export interface MyReview extends Review {
+  anime: { id: number; title: AnimeCard['title']; coverImage: string | null }
+}
+
+export type RecentReview = MyReview
+
+export type ActivityType = 'LIBRARY_ADDED' | 'STATUS_CHANGED' | 'COMPLETED' | 'RATED' | 'REVIEWED'
+
+export interface ActivityItem {
+  id: string
+  type: ActivityType
+  createdAt: string
+  reviewId: string | null
+  payload: { status?: string; score?: number; rating?: number } | null
+  anime: { id: number; title: AnimeCard['title']; coverImage: string | null }
 }
 
 export interface User {
