@@ -31,6 +31,7 @@ import {
   stripHtml,
   timeAgo,
 } from '../lib/format'
+import { cn } from '../lib/cn'
 import type { ListStatus, Review } from '../lib/types'
 import { AnimeCardView } from '../components/AnimeCard'
 import { Poster } from '../components/Poster'
@@ -149,6 +150,7 @@ export default function AnimeDetailPage() {
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const [charPage, setCharPage] = useState(1)
+  const [charRoleFilter, setCharRoleFilter] = useState<'ALL' | 'MAIN' | 'SUPPORTING'>('ALL')
   const [reviewPage, setReviewPage] = useState(1)
   const [editingReview, setEditingReview] = useState(false)
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
@@ -598,20 +600,54 @@ export default function AnimeDetailPage() {
               <EmptyState title="No characters available" />
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {characters.data.items.map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3">
-                      <Poster src={c.image} alt={c.name} className="h-16 w-12 rounded-sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-ink">{c.name}</p>
-                        <p className="truncate text-xs text-ink-3">{c.nameNative ?? ''}</p>
-                        <p className="mt-1 text-xs text-ink-2">
-                          {c.role}
-                          {c.voiceActor ? ` · ${c.voiceActor.name} (${c.voiceActor.language})` : ''}
-                        </p>
-                      </div>
-                    </div>
+                <div className="mb-4 flex items-center gap-1.5 overflow-x-auto rounded-sm border border-line bg-surface/40 p-1">
+                  {(['ALL', 'MAIN', 'SUPPORTING'] as const).map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setCharRoleFilter(role)}
+                      className={cn(
+                        'rounded-xs px-2.5 py-1 text-xs font-medium transition-colors',
+                        charRoleFilter === role ? 'bg-surface-raised text-ink' : 'text-ink-3 hover:text-ink',
+                      )}
+                    >
+                      {role === 'ALL' ? 'All Roles' : role === 'MAIN' ? 'Main Cast' : 'Supporting'}
+                    </button>
                   ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {characters.data.items
+                    .filter((c) => {
+                      if (charRoleFilter === 'ALL') return true
+                      return c.role.toUpperCase() === charRoleFilter
+                    })
+                    .map((c) => (
+                      <div key={c.id} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3 transition-colors hover:border-line-strong">
+                        <Poster src={c.image} alt={c.name} className="h-16 w-12 rounded-sm shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="truncate text-sm font-semibold text-ink">{c.name}</p>
+                            <span className={cn(
+                              'shrink-0 rounded-xs px-1.5 py-0.5 text-[10px] font-bold uppercase',
+                              c.role.toUpperCase() === 'MAIN' ? 'bg-accent/15 text-accent-strong border border-accent/30' : 'bg-surface text-ink-3 border border-line'
+                            )}>
+                              {c.role}
+                            </span>
+                          </div>
+                          <p className="truncate text-xs text-ink-3">{c.nameNative ?? ''}</p>
+                          {c.voiceActor ? (
+                            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-2">
+                              <span className="text-ink-4">VA:</span>
+                              <span className="truncate font-medium">{c.voiceActor.name}</span>
+                              <span className="rounded-xs bg-surface-raised px-1 py-0.2 text-[9px] text-ink-3">
+                                {c.voiceActor.language}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
                 </div>
                 <Pagination
                   page={characters.data.page}
