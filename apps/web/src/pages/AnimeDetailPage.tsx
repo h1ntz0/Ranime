@@ -356,6 +356,12 @@ export default function AnimeDetailPage() {
               {anime.country && <span>{anime.country}</span>}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to={`/compare?ids=${anime.id}`}
+                className="rounded-full border border-line bg-surface-raised/40 px-3 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-accent hover:text-accent-strong"
+              >
+                ⚖️ Compare with other anime
+              </Link>
               {anime.genres.map((g) => (
                 <Link
                   key={g}

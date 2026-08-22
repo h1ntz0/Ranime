@@ -288,3 +288,16 @@ export function fetchMyReviews(page: number, signal?: AbortSignal): Promise<Page
 export function fetchRecentReviews(page: number, signal?: AbortSignal): Promise<Paged<RecentReview>> {
   return request(`/reviews/recent${qs({ page })}`, { signal })
 }
+
+/* ---------- comparison & roulette ---------- */
+
+export function fetchCompareAnime(ids: number[], signal?: AbortSignal): Promise<AnimeDetail[]> {
+  return request(`/anime/compare${qs({ ids: ids.join(',') })}`, { signal })
+}
+
+export function fetchRouletteAnime(
+  params: { genre?: string; format?: string; minScore?: number; year?: number } = {},
+  signal?: AbortSignal,
+): Promise<AnimeDetail | null> {
+  return request(`/anime/roulette${qs(params)}`, { signal })
+}

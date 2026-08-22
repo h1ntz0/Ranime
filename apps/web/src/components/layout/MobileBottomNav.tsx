@@ -41,12 +41,19 @@ function UserIcon({ active }: { active: boolean }) {
   )
 }
 
+function DiceIcon({ active }: { active: boolean }) {
+  return (
+    <span className={cn('text-lg leading-none', active ? 'opacity-100' : 'opacity-70')}>🎲</span>
+  )
+}
+
 export function MobileBottomNav() {
   const { user } = useAuth()
 
   const items = [
     { to: '/', label: 'Home', end: true, Icon: HomeIcon, show: true },
     { to: '/explore', label: 'Explore', end: false, Icon: CompassIcon, show: true },
+    { to: '/roulette', label: 'Roulette', end: false, Icon: DiceIcon, show: true },
     { to: '/library', label: 'Library', end: false, Icon: LibraryIcon, show: !!user },
     {
       to: user ? `/profile/${user.username}` : '/login',

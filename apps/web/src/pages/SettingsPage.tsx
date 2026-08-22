@@ -179,6 +179,74 @@ export default function SettingsPage() {
           </Button>
         </form>
       </section>
+
+      <section aria-label="Data Backup" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+        <h2 className="text-sm font-semibold text-ink">Data Management & Backup</h2>
+        <p className="mt-1 text-xs text-ink-3">
+          Export your complete anime library and watch history or import from another backup.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/library?limit=500', { credentials: 'include' })
+                const data = await res.json()
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `ranime-backup-${new Date().toISOString().slice(0, 10)}.json`
+                a.click()
+                URL.revokeObjectURL(url)
+                toast('Library exported successfully!')
+              } catch {
+                toast('Export failed', 'error')
+              }
+            }}
+          >
+            📥 Export Library (JSON)
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/library?limit=500', { credentials: 'include' })
+                const json = await res.json()
+                const items = json.data?.items ?? []
+                const headers = ['id', 'title', 'status', 'currentEpisode', 'totalEpisodes', 'score']
+                const csvRows = [headers.join(',')]
+                for (const item of items) {
+                  csvRows.push(
+                    [
+                      item.anime.id,
+                      `"${(item.anime.title.romaji || '').replace(/"/g, '""')}"`,
+                      item.status,
+                      item.currentEpisode,
+                      item.totalEpisodes ?? '',
+                      item.anime.averageScore ?? '',
+                    ].join(','),
+                  )
+                }
+                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `ranime-library-${new Date().toISOString().slice(0, 10)}.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+                toast('Library exported to CSV!')
+              } catch {
+                toast('CSV export failed', 'error')
+              }
+            }}
+          >
+            📊 Export Library (CSV)
+          </Button>
+        </div>
+      </section>
     </div>
   )
 }
