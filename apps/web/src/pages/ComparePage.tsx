@@ -178,13 +178,13 @@ export default function ComparePage() {
       )}
 
       {items.length >= 2 && (
-        <div className="overflow-x-auto rounded-lg border border-line bg-surface/30">
-          <table className="w-full border-collapse text-left text-sm">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface/30 [scrollbar-width:thin]">
+          <table className="w-full min-w-[500px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-line bg-surface-raised/50 text-xs font-semibold uppercase text-ink-3">
-                <th className="p-4 w-1/4">Metric</th>
+                <th className="p-3 sm:p-4 w-1/4">Metric</th>
                 {items.map((a) => (
-                  <th key={a.id} className="p-4 text-ink">
+                  <th key={a.id} className="p-3 sm:p-4 text-ink min-w-[140px]">
                     {displayTitle(a.title)}
                   </th>
                 ))}
@@ -192,17 +192,17 @@ export default function ComparePage() {
             </thead>
             <tbody className="divide-y divide-line text-ink-2">
               <tr>
-                <td className="p-4 font-medium text-ink-3">Score</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Score</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4 font-bold text-warning text-base">
+                  <td key={a.id} className="p-3 sm:p-4 font-bold text-warning text-base">
                     ★ {formatScore(a.averageScore)}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Community Rating</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Community Rating</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {a.communityRating?.average
                       ? `${a.communityRating.average.toFixed(1)} / 10 (${a.communityRating.count} votes)`
                       : 'No votes yet'}
@@ -210,49 +210,49 @@ export default function ComparePage() {
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Popularity</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Popularity</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     #{a.popularity?.toLocaleString() ?? '—'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Format</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Format</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {a.format ?? '—'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Episodes / Duration</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Episodes / Duration</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {a.episodes ? `${a.episodes} eps` : '—'} · {a.duration ? `${a.duration} min` : '—'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Status</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Status</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {formatStatus(a.status)}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Season / Year</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Season / Year</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {a.season ?? '—'} {a.seasonYear ?? ''}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Genres</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Genres</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-1">
                       {a.genres.map((g) => (
                         <span
@@ -267,9 +267,9 @@ export default function ComparePage() {
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-ink-3">Studios</td>
+                <td className="p-3 sm:p-4 font-medium text-ink-3">Studios</td>
                 {items.map((a) => (
-                  <td key={a.id} className="p-4">
+                  <td key={a.id} className="p-3 sm:p-4">
                     {a.studios.join(', ') || '—'}
                   </td>
                 ))}
