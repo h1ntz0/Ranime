@@ -245,6 +245,47 @@ export default function SettingsPage() {
           >
             📊 Export Library (CSV)
           </Button>
+
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-sm border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-xs hover:bg-surface-raised transition-colors">
+            <span>📤 Import Backup (JSON)</span>
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                try {
+                  const text = await file.text()
+                  const parsed = JSON.parse(text)
+                  const items = Array.isArray(parsed) ? parsed : parsed.data?.items ?? []
+                  if (items.length === 0) {
+                    toast('No items found in backup file', 'error')
+                    return
+                  }
+                  toast(`Importing ${items.length} items...`)
+                  let imported = 0
+                  for (const it of items) {
+                    const animeId = it.animeId || it.anime?.id || it.id
+                    const status = it.status || 'PLANNING'
+                    const currentEpisode = it.currentEpisode || 0
+                    if (animeId) {
+                      await fetch(`/api/watchlist/${animeId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status, currentEpisode }),
+                        credentials: 'include',
+                      })
+                      imported++
+                    }
+                  }
+                  toast(`Successfully imported ${imported} anime into your library!`)
+                } catch {
+                  toast('Invalid JSON backup file', 'error')
+                }
+              }}
+            />
+          </label>
         </div>
       </section>
     </div>

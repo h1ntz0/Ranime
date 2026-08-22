@@ -765,7 +765,7 @@ export default function AnimeDetailPage() {
             </Section>
           )}
 
-          <Section title="Relations">
+          <Section title="Franchise & Relations">
             {relations.isPending ? (
               <Skeleton className="h-32 w-full" />
             ) : relations.isError ? (
@@ -773,24 +773,37 @@ export default function AnimeDetailPage() {
             ) : relations.data.length === 0 ? (
               <EmptyState title="No relations found" />
             ) : (
-              <ul className="space-y-2">
+              <div className="relative border-l-2 border-accent/40 pl-3 ml-2 space-y-3">
                 {relations.data.map((r) => (
-                  <li key={r.anime.id}>
+                  <div key={r.anime.id} className="relative">
+                    <div className="absolute -left-[19px] top-4 h-2.5 w-2.5 rounded-full border-2 border-accent bg-background" />
                     <Link
                       to={`/anime/${r.anime.id}`}
-                      className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-2 transition-colors hover:border-line-strong"
+                      className="group flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-2.5 transition-all hover:border-accent hover:bg-surface"
                     >
-                      <Poster src={r.anime.coverImage} alt={displayTitle(r.anime.title)} className="h-16 w-12 rounded-sm" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-accent-strong">
-                          {r.relationType.replace(/_/g, ' ')}
+                      <Poster src={r.anime.coverImage} alt={displayTitle(r.anime.title)} className="h-16 w-12 shrink-0 rounded-sm shadow-xs transition-transform group-hover:scale-105" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded-xs bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-strong border border-accent/25">
+                            {r.relationType.replace(/_/g, ' ')}
+                          </span>
+                          {r.anime.averageScore && (
+                            <span className="text-[10px] font-bold text-warning">
+                              ★{formatScore(r.anime.averageScore)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 truncate text-xs font-semibold text-ink group-hover:text-accent-strong transition-colors">
+                          {displayTitle(r.anime.title)}
                         </p>
-                        <p className="truncate text-sm text-ink">{displayTitle(r.anime.title)}</p>
+                        <p className="text-[10px] text-ink-3">
+                          {[r.anime.format, r.anime.status ? formatStatus(r.anime.status) : null].filter(Boolean).join(' · ')}
+                        </p>
                       </div>
                     </Link>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </Section>
         </aside>
