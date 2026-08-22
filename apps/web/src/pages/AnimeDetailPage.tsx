@@ -431,8 +431,21 @@ export default function AnimeDetailPage() {
               )}
             </div>
 
-            {user && (
+            {user ? (
               <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
+                <StatusSelect
+                  value={entry.data?.status ?? null}
+                  onChange={handleStatusChange}
+                  disabled={saveEntry.isPending || removeEntry.isPending}
+                />
+                <StarRating
+                  value={ratings.data?.myScore ?? null}
+                  onChange={(score) => {
+                    if (score === 0) removeRating(animeId).then(invalidate).catch(() => {})
+                    else rate.mutate(score)
+                  }}
+                  disabled={rate.isPending}
+                />
                 {entry.data && anime.format !== 'MOVIE' && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-ink-2">Episodes</span>
@@ -467,6 +480,12 @@ export default function AnimeDetailPage() {
                     Remove
                   </Button>
                 )}
+              </div>
+            ) : (
+              <div className="mt-4 lg:hidden">
+                <Link to={`/login?next=${encodeURIComponent(`/anime/${animeId}`)}`} className={buttonClass('primary')}>
+                  Login to track, rate and review
+                </Link>
               </div>
             )}
 
