@@ -41,6 +41,8 @@ export default function LibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [debounced, setDebounced] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [batchActionRunning, setBatchActionRunning] = useState(false)
 
   const statusValue = (TABS.find((t) => t.value === searchParams.get('status'))?.value ?? '') as ListStatus | ''
   const status: ListStatus | undefined = statusValue === '' ? undefined : statusValue
@@ -99,8 +101,61 @@ export default function LibraryPage() {
       queryClient.invalidateQueries({ queryKey: ['statistics'] })
       toast(vars.remove ? 'Removed from library' : 'Library updated')
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Update failed', 'error'),
+    onError: (e) => toast(e instanceof Error ? e.message : 'Action failed', 'error'),
   })
+
+  async function handleBatchStatus(newStatus: ListStatus) {
+    if (selectedIds.length === 0) return
+    setBatchActionRunning(true)
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          updateWatchlist(id, { status: newStatus, currentEpisode: 0 })
+        )
+      )
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] })
+      queryClient.invalidateQueries({ queryKey: ['statistics'] })
+      toast(`Updated ${selectedIds.length} titles to ${STATUS_LABELS[newStatus]}`)
+      setSelectedIds([])
+    } catch {
+      toast('Failed to batch update status', 'error')
+    } finally {
+      setBatchActionRunning(false)
+    }
+  }
+
+  async function handleBatchRemove() {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Are you sure you want to remove ${selectedIds.length} anime from your library?`)) return
+    setBatchActionRunning(true)
+    try {
+      await Promise.all(selectedIds.map((id) => removeWatchlist(id)))
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+      queryClient.invalidateQueries({ queryKey: ['watchlist'] })
+      queryClient.invalidateQueries({ queryKey: ['statistics'] })
+      toast(`Removed ${selectedIds.length} titles from library`)
+      setSelectedIds([])
+    } catch {
+      toast('Failed to batch remove titles', 'error')
+    } finally {
+      setBatchActionRunning(false)
+    }
+  }
+
+  function toggleSelectAll(items: { anime: { id: number } }[]) {
+    if (selectedIds.length === items.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(items.map((i) => i.anime.id))
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
 
   function update(next: { status?: string; q?: string; genre?: string; minScore?: number; sort?: string; page?: number }) {
     const merged: Record<string, string> = {}
@@ -254,6 +309,64 @@ export default function LibraryPage() {
         </label>
       </div>
 
+      {data.data && data.data.items.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-line bg-surface/40 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="select-all"
+              aria-label="Select all anime on page"
+              checked={selectedIds.length > 0 && selectedIds.length === data.data.items.length}
+              onChange={() => toggleSelectAll(data.data!.items)}
+              className="h-4 w-4 rounded border-line bg-surface text-accent focus:ring-accent"
+            />
+            <label htmlFor="select-all" className="font-medium text-ink cursor-pointer">
+              {selectedIds.length > 0
+                ? `${selectedIds.length} of ${data.data.items.length} selected`
+                : 'Select all on page'}
+            </label>
+          </div>
+
+          {selectedIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in">
+              <span className="text-ink-4">Bulk:</span>
+              <button
+                type="button"
+                disabled={batchActionRunning}
+                onClick={() => handleBatchStatus('COMPLETED')}
+                className="rounded-xs bg-surface-raised px-2 py-1 font-medium text-positive hover:bg-surface-raised/80 transition-colors"
+              >
+                Mark Completed
+              </button>
+              <button
+                type="button"
+                disabled={batchActionRunning}
+                onClick={() => handleBatchStatus('WATCHING')}
+                className="rounded-xs bg-surface-raised px-2 py-1 font-medium text-accent hover:bg-surface-raised/80 transition-colors"
+              >
+                Mark Watching
+              </button>
+              <button
+                type="button"
+                disabled={batchActionRunning}
+                onClick={() => handleBatchStatus('PLANNING')}
+                className="rounded-xs bg-surface-raised px-2 py-1 font-medium text-ink-2 hover:bg-surface-raised/80 transition-colors"
+              >
+                Mark Planning
+              </button>
+              <button
+                type="button"
+                disabled={batchActionRunning}
+                onClick={handleBatchRemove}
+                className="rounded-xs bg-danger/15 px-2 py-1 font-medium text-danger hover:bg-danger/25 transition-colors"
+              >
+                Remove ({selectedIds.length})
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-6">
         {data.isPending ? (
           <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6' : 'space-y-3'}>
@@ -282,10 +395,31 @@ export default function LibraryPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {data.data.items.map((entry) => {
               const anime = entry.anime
+              const isSelected = selectedIds.includes(anime.id)
 
               return (
-                <div key={entry.id} className="group relative flex flex-col gap-1.5">
+                <div key={entry.id} className={cn('group relative flex flex-col gap-1.5 rounded-sm p-1 transition-colors', isSelected && 'bg-surface-raised ring-2 ring-accent')}>
                   <div className="relative aspect-[2/3] overflow-hidden rounded-sm border border-line bg-surface transition-all group-hover:border-line-strong">
+                    <button
+                      type="button"
+                      aria-label={`Select ${displayTitle(anime.title)}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSelect(anime.id)
+                      }}
+                      className={cn(
+                        'absolute left-1.5 top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded bg-background/80 backdrop-blur transition-opacity',
+                        isSelected ? 'opacity-100 ring-2 ring-accent' : 'opacity-0 group-hover:opacity-100'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="pointer-events-none h-3.5 w-3.5 rounded text-accent"
+                      />
+                    </button>
+
                     <Link to={`/anime/${anime.id}`} className="block h-full w-full">
                       <Poster
                         src={anime.coverImage}
@@ -295,7 +429,7 @@ export default function LibraryPage() {
                     </Link>
 
                     {/* Badge status */}
-                    <span className="absolute left-1.5 top-1.5 rounded-xs bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-ink-2 backdrop-blur">
+                    <span className="absolute left-1.5 bottom-12 rounded-xs bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-ink-2 backdrop-blur">
                       {STATUS_LABELS[entry.status]}
                     </span>
 
@@ -350,31 +484,44 @@ export default function LibraryPage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {data.data.items.map((entry) => (
-              <LibraryRow
-                key={entry.id}
-                entry={entry}
-                actions={
-                  <LibraryRowActions
-                    entry={entry}
-                    actions={{
-                      disabled: mutation.isPending,
-                      onStatus: (s) =>
-                        mutation.mutate({
-                          animeId: entry.anime.id,
-                          input: { status: s, currentEpisode: entry.currentEpisode },
-                        }),
-                      onEpisode: (ep) =>
-                        mutation.mutate({
-                          animeId: entry.anime.id,
-                          input: { status: entry.status, currentEpisode: ep },
-                        }),
-                      onRemove: () => mutation.mutate({ animeId: entry.anime.id, remove: true }),
-                    }}
+            {data.data.items.map((entry) => {
+              const isSelected = selectedIds.includes(entry.anime.id)
+              return (
+                <div key={entry.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${displayTitle(entry.anime.title)}`}
+                    checked={isSelected}
+                    onChange={() => toggleSelect(entry.anime.id)}
+                    className="h-4 w-4 shrink-0 rounded border-line bg-surface text-accent focus:ring-accent"
                   />
-                }
-              />
-            ))}
+                  <div className={cn('flex-1 transition-all rounded-sm', isSelected && 'ring-1 ring-accent')}>
+                    <LibraryRow
+                      entry={entry}
+                      actions={
+                        <LibraryRowActions
+                          entry={entry}
+                          actions={{
+                            disabled: mutation.isPending,
+                            onStatus: (s) =>
+                              mutation.mutate({
+                                animeId: entry.anime.id,
+                                input: { status: s, currentEpisode: entry.currentEpisode },
+                              }),
+                            onEpisode: (ep) =>
+                              mutation.mutate({
+                                animeId: entry.anime.id,
+                                input: { status: entry.status, currentEpisode: ep },
+                              }),
+                            onRemove: () => mutation.mutate({ animeId: entry.anime.id, remove: true }),
+                          }}
+                        />
+                      }
+                    />
+                  </div>
+                </div>
+              )
+            })}
           </ul>
         )}
 
