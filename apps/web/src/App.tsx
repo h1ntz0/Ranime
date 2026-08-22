@@ -19,6 +19,8 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import MyRatingsPage from './pages/MyRatingsPage'
 import MyReviewsPage from './pages/MyReviewsPage'
+import ComparePage from './pages/ComparePage'
+import RoulettePage from './pages/RoulettePage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -28,6 +30,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/anime/:id" element={<AnimeDetailPage />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/roulette" element={<RoulettePage />} />
         <Route path="/top" element={<TopPage />} />
         <Route path="/season" element={<SeasonPage />} />
         <Route path="/genres" element={<GenresPage />} />

@@ -59,4 +59,47 @@ export async function animeRoutes(app: FastifyInstance): Promise<void> {
     const result = await app.animeService.recommendations(id, query.page ?? 1, query.limit ?? 15)
     return sendPage(reply, result)
   })
+
+  app.get('/anime/compare', async (request, reply) => {
+    const compareQuerySchema = z.object({
+      ids: z.string().transform((val) =>
+        val
+          .split(',')
+          .map((n) => Number(n.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0)
+          .slice(0, 4),
+      ),
+    })
+    const { ids } = compareQuerySchema.parse(request.query)
+    if (ids.length === 0) {
+      return sendData(reply, [])
+    }
+    const list = await Promise.all(ids.map((id) => app.animeService.detail(id).catch(() => null)))
+    return sendData(reply, list.filter(Boolean))
+  })
+
+  app.get('/anime/roulette', async (request, reply) => {
+    const rouletteQuerySchema = z.object({
+      genre: z.string().max(100).optional(),
+      format: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'MUSIC']).optional(),
+      minScore: z.coerce.number().min(1).max(10).optional(),
+      year: z.coerce.number().int().min(1900).max(2200).optional(),
+    })
+    const query = rouletteQuerySchema.parse(request.query)
+    const result = await app.animeService.list({
+      ...query,
+      sort: 'POPULARITY',
+      limit: 50,
+    })
+    if (!result.items.length) {
+      return sendData(reply, null)
+    }
+    const randomIndex = Math.floor(Math.random() * result.items.length)
+    const randomAnime = result.items[randomIndex]
+    if (!randomAnime) {
+      return sendData(reply, null)
+    }
+    const detail = await app.animeService.detail(randomAnime.id).catch(() => null)
+    return sendData(reply, detail ?? randomAnime)
+  })
 }

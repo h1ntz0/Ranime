@@ -9,8 +9,10 @@ import { SearchBar } from '../SearchBar'
 const NAV = [
   { to: '/', label: 'Home' },
   { to: '/explore', label: 'Explore' },
+  { to: '/roulette', label: 'Roulette 🎲' },
+  { to: '/compare', label: 'Compare' },
   { to: '/season', label: 'Season' },
-  { to: '/top', label: 'Top Anime' },
+  { to: '/top', label: 'Top' },
   { to: '/genres', label: 'Genres' },
   { to: '/airing', label: 'Airing' },
 ]
