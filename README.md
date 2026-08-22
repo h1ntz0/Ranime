@@ -1,155 +1,154 @@
-# Ranime
+# 🎬 Ranime (AnimeRate)
 
-Anime discovery, catalog, tracking, rating and review platform: **local-first**, powered by the
-AniList GraphQL API and a local PostgreSQL database.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Fastify](https://img.shields.io/badge/Fastify-5.x-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-> Status: All milestones (M1–M11) complete: catalog sync, auth, library tracking, watchlist,
-> ratings, reviews with spoiler protection, and statistics are implemented and tested.
+A modern, high-performance, **local-first anime discovery, tracking, tier listing, and rating platform** powered by the AniList GraphQL API, Fastify, and PostgreSQL.
 
-Docs: [Cara Menjalankan (panduan lengkap)](RUNBOOK.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Contributing](CONTRIBUTING.md) · License: MIT
+---
 
-![Ranime Homepage](docs/screenshots/home.png)
+## 🌟 Visual Showcase & Key Features
 
-## Tech Stack
+### 1. 🏠 Immersive Home & Real-time Trends
+Dynamic hero carousel with AniList trending & popular synching, continue watching tray, and public community reviews.
 
-| Layer    | Technology                                                          |
-| -------- | ------------------------------------------------------------------- |
-| Frontend | React, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS |
-| Backend  | Node.js, TypeScript, Fastify, Zod                                   |
-| Database | PostgreSQL 16 (Docker)                                              |
-| Auth     | JWT in HTTP-only cookie, Argon2id                                    |
-| Sync     | AniList GraphQL API (search + on-demand full detail sync)         |
-| Testing  | Vitest (API integration + component tests)                          |
-| Infra    | Docker Compose (PostgreSQL only)                                    |
+![Ranime Homepage](docs/screenshots/01-home.png)
 
-## Architecture
+---
 
-```mermaid
-flowchart TD
-    A[Browser] -->|HTTP| B[Frontend\napps/web · :3000]
-    B -->|/api · Vite dev proxy| C[Backend\napps/api · :4000]
-    C -->|SQL| D[(PostgreSQL\n:5432 · Docker)]
-    C -->|GraphQL| E[AniList API\nsearch + detail sync]
+### 2. 📅 Interactive Airing Calendar & Countdown
+Weekly broadcast calendar with real-time countdown badges, day-of-week filtering (`Sunday`–`Saturday`), and air times.
 
-    style A fill:#1a1a2e,stroke:#e94560,color:#fff
-    style B fill:#16213e,stroke:#0f3460,color:#fff
-    style C fill:#0f3460,stroke:#533483,color:#fff
-    style D fill:#1a1a2e,stroke:#e94560,color:#fff
-    style E fill:#533483,stroke:#e94560,color:#fff
+![Airing Schedule](docs/screenshots/02-airing-schedule.png)
+
+---
+
+### 3. 🏆 Interactive Tier List Maker (`/tier-list`)
+Create custom visual Tier Lists (`S`, `A`, `B`, `C`, `D`, `F`) with quick search, slotting, tier renaming, color palettes, and PNG image export.
+
+![Tier List Maker](docs/screenshots/03-tier-list.png)
+
+---
+
+### 4. 🎲 Discovery Recommendation Roulette (`/roulette`)
+Unsure what to watch? Spin the smart discovery roulette with genre, format, and score filters for instant serendipitous picks.
+
+![Discovery Roulette](docs/screenshots/04-roulette.png)
+
+---
+
+### 5. ⚖️ Anime Comparison Matrix (`/compare`)
+Compare two anime side-by-side: community score, status, episode length, studio, source material, and genre overlap.
+
+![Anime Comparison Tool](docs/screenshots/05-compare.png)
+
+---
+
+### 6. 🔍 Advanced Catalog Explorer (`/explore`)
+Rich faceted filtering (Genres, Season, Year, Format, Studio, Airing Status, Sort) with instant query caching.
+
+![Catalog Explorer](docs/screenshots/06-explore.png)
+
+---
+
+### 7. 📖 Rich Anime Detail, Staff, & Franchise Timeline (`/anime/:id`)
+Comprehensive details with character roles (Main/Supporting/VA), staff, relations timeline, recommendations, and spoiler-safe reviews.
+
+![Anime Detail & Timeline](docs/screenshots/07-anime-detail.png)
+
+---
+
+### 8. 📱 Mobile-First Responsive Design
+Engineered with safe-area insets, mobile bottom navigation, command palette (`Ctrl+K` / `Cmd+K`), quick `+1 Ep` tracking, and native share sheets.
+
+<div align="center">
+  <img src="docs/screenshots/10-mobile-responsive.png" width="380" alt="Mobile Experience" />
+</div>
+
+---
+
+## ⚡ Feature Matrix
+
+- 🔍 **Universal Command Palette**: Quick jump to any page or anime anywhere (`Ctrl+K` / `Cmd+K`).
+- 📊 **Anime Passport & Stats Wrapped**: Visual infographic breakdown of genres, ratings, watch time, and shareable passport.
+- 📦 **Multi-Select Bulk Library Manager**: Batch update status, batch score, or delete multiple entries in one click.
+- 🔄 **MAL / AniList / Ranime JSON Importer & Exporter**: Zero lock-in backup and restore tooling in Settings.
+- 🎭 **Spoiler Protection System**: Community reviews with toggleable spoiler filters and masked avatars/text.
+- ⚡ **Local-First Architecture**: Database caching ensures ultra-fast responses without continuous third-party rate-limit hits.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, React Router, TanStack Query v5, Tailwind CSS v4, Lucide Icons |
+| **Backend** | Fastify 5, TypeScript, Zod, Argon2id, Jose (JWT) |
+| **Database** | PostgreSQL 16 (Docker Compose) |
+| **API Integration** | AniList GraphQL API (Search + On-Demand Full Ingestion) |
+| **Testing** | Vitest (API integration test suites + Web unit tests) |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js `>= 20.x` (or `>= 22.x`)
+- Docker & Docker Compose
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/h1ntz0/Ranime.git
+cd Ranime
+npm install
 ```
 
-Browser never talks to AniList directly: all external data flows through the backend, is
-normalized and persisted locally.
-
-## Prerequisites
-
-- WSL2 Ubuntu (or any Linux)
-- Node.js >= 22
-- Docker + docker-compose
-
-## Quick Start
-
+### 2. Configure Environment
 ```bash
-npm install
-
-# environment
 cp .env.example .env
-# then generate a JWT_SECRET:  openssl rand -hex 32
+# Edit .env and ensure DATABASE_URL and JWT_SECRET are set
+```
 
-# database
-npm run db:up        # docker-compose up -d
+### 3. Start Database & Run Migrations
+```bash
+# Start PostgreSQL container
+npm run db:up
 
-# run both apps (api on :4000, web on :3000)
+# Run database migrations & seed demo account
+npm run db:migrate
+npm run db:seed
+```
+
+*Demo Login: `demo@example.local` / `password123`*
+
+### 4. Run Development Servers
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000.
+- Web Application: `http://localhost:3000`
+- Backend API: `http://localhost:4000/api`
 
-## Scripts
+---
 
-| Script              | Description                             |
-| ------------------- | --------------------------------------- |
-| `npm run dev`       | Run API + web concurrently (watch mode) |
-| `npm run build`     | Build API (tsup) + web (vite)           |
-| `npm run typecheck` | TypeScript check across all workspaces  |
-| `npm run lint`      | ESLint (flat config)                    |
-| `npm run format`    | Prettier write                          |
-| `npm run test`      | Vitest (API + web)                      |
-| `npm run db:up`     | Start PostgreSQL container              |
-| `npm run db:down`   | Stop PostgreSQL container               |
+## 📜 Available Scripts
 
-## Features
+| Command | Action |
+|---|---|
+| `npm run dev` | Starts Fastify API and Vite Web concurrently |
+| `npm run build` | Builds backend (`tsup`) and frontend (`vite`) for production |
+| `npm run typecheck` | Validates TypeScript across all workspaces |
+| `npm run lint` | Runs ESLint |
+| `npm run test` | Runs complete Vitest test suite |
+| `npm run db:up` | Starts Docker PostgreSQL instance |
+| `npm run db:migrate` | Applies schema migrations |
+| `npm run db:seed` | Populates demo data and seed account |
 
-| Area        | Details                                                                |
-| ----------- | ---------------------------------------------------------------------- |
-| Catalog     | Search + browse with genre/season/status filters, pagination            |
-| Detail      | Synopsis, episode count, year, genres, characters, staff, relations, recommendations |
-| Sync        | On-demand AniList sync, dedup (same title returns same record)         |
-| Library     | Track status (planning/watching/completed/paused/dropped), episode progress |
-| Watchlist   | One-click add/remove from catalog, detail, and home hero                |
-| Ratings     | 0.5–10 step, community average + your rating side by side               |
-| Reviews     | Write/edit/delete with spoiler blur (avatars & bodies hidden)           |
-| Statistics  | Totals, averages, watched episodes, ratings/genre/status charts         |
-| Auth        | Register/login/logout, Argon2id hashing, JWT in HTTP-only cookie        |
+---
 
-## Project Structure
-
-```
-├── apps/
-│   ├── api/                  # Fastify backend (:4000)
-│   │   └── src/
-│   │       ├── config/       # zod-validated env
-│   │       ├── database/     # pg pool
-│   │       ├── modules/      # feature modules (health, auth, anime, ...)
-│   │       ├── services/     # AniList sync, data mutations, stats
-│   │       └── types/
-│   └── web/                  # Vite React frontend (:3000)
-│       └── src/
-│           ├── lib/          # API client
-│           └── pages/        # routes + components
-├── packages/
-│   └── shared/               # API contract types ({data}/{error} envelope)
-├── database/                 # migrations & seed
-├── docker-compose.yml
-├── .env.example
-└── PRD.md
-```
-
-## Environment Variables
-
-See `.env.example`. `DATABASE_URL` and `JWT_SECRET` are required; startup fails fast with a clear
-message if they are missing or invalid. Secrets must never be committed (`.env` is gitignored).
-
-## API Contract
-
-All responses follow a consistent envelope (PRD #83):
-
-```json
-{ "data": {}, "meta": {} }              // success
-{ "error": { "code": "CODE", "message": "..." } }  // error
-```
-
-Key endpoint groups (full list in `apps/api/src/routes/`):
-
-| Group        | Examples                                                          |
-| ------------ | ----------------------------------------------------------------- |
-| Health       | `GET /api/health`                                                 |
-| Auth         | `POST /api/auth/register`, `/login`, `/logout`, `GET /auth/me`    |
-| Catalog      | `GET /api/genres`, `/api/genres/:slug`, `/api/season`, `/api/top`, `/api/airing` |
-| Anime        | `GET /api/anime`, `/api/anime/:id`, `/anime/:id/{characters,staff,relations,recommendations}` |
-| Library      | `GET /api/library`                                                |
-| Watchlist    | `POST/PUT/DELETE /api/anime/:id/watchlist`, `GET /api/watchlist`, `/watchlist/status-counts` |
-| Ratings      | `POST/PUT/DELETE /api/anime/:id/rating`                           |
-| Reviews      | `POST/GET /api/anime/:id/reviews`, `GET .../reviews/mine`, `PUT/DELETE /api/reviews/:id` |
-| Statistics   | `GET /api/statistics`                                             |
-| Users        | `GET /api/users/:username`, `POST /api/users/me/avatar`           |
-
-## Testing
-
-```bash
-npm test
-```
-
-- `apps/api/test/`: 63 integration tests: auth, anime sync + dedup, library, watchlist, ratings,
-  reviews, spoiler protection, statistics (Fastify `inject` + real PostgreSQL)
-- `apps/web/src/`: component tests (Vitest + Testing Library)
+## 📄 License
+This project is open-source under the [MIT License](LICENSE).
