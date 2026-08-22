@@ -362,6 +362,24 @@ export default function AnimeDetailPage() {
               >
                 ⚖️ Compare with other anime
               </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: displayTitle(anime.title),
+                      text: `Check out ${displayTitle(anime.title)} on Ranime!`,
+                      url: window.location.href,
+                    }).catch(() => {})
+                  } else {
+                    navigator.clipboard.writeText(window.location.href)
+                    toast('Link copied to clipboard!')
+                  }
+                }}
+                className="rounded-full border border-line bg-surface-raised/40 px-3 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-accent hover:text-accent-strong"
+              >
+                🔗 Share
+              </button>
               {anime.genres.map((g) => (
                 <Link
                   key={g}

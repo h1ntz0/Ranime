@@ -54,8 +54,18 @@ export type LibraryStatusAction = {
 export function LibraryRowActions({ entry, actions }: { entry: LibraryEntry; actions: LibraryStatusAction }) {
   const selectClass =
     'rounded-sm border border-line bg-surface px-2 py-1.5 text-xs text-ink transition-colors focus:border-accent focus:outline-none disabled:opacity-50'
+  const isCompleted = Boolean(entry.totalEpisodes && entry.currentEpisode >= entry.totalEpisodes)
   return (
     <>
+      <button
+        type="button"
+        disabled={Boolean(actions.disabled) || isCompleted}
+        onClick={() => actions.onEpisode(entry.currentEpisode + 1)}
+        className="flex h-7 items-center justify-center rounded-sm bg-accent/20 px-2 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent hover:text-background disabled:opacity-40"
+        title="Quick +1 Episode"
+      >
+        +1 Ep
+      </button>
       <select
         value={entry.status}
         disabled={actions.disabled}

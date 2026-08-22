@@ -11,6 +11,7 @@ const NAV = [
   { to: '/explore', label: 'Explore' },
   { to: '/roulette', label: 'Roulette 🎲' },
   { to: '/compare', label: 'Compare' },
+  { to: '/tier-list', label: 'Tier List' },
   { to: '/season', label: 'Season' },
   { to: '/top', label: 'Top' },
   { to: '/genres', label: 'Genres' },
