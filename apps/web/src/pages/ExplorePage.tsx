@@ -290,7 +290,16 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <div className="mt-8">
+      <div className="mt-8 relative">
+        {data.isFetching && !data.isPending && (
+          <div className="absolute inset-0 z-20 flex items-start justify-center pt-24 bg-background/50 backdrop-blur-2xs transition-opacity animate-in fade-in">
+            <div className="flex items-center gap-3 rounded-full border border-line bg-surface-raised px-4 py-2 shadow-xl">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <span className="text-xs font-semibold text-ink">Filtering anime...</span>
+            </div>
+          </div>
+        )}
+
         {data.isPending ? (
           <CardGridSkeleton />
         ) : data.isError ? (
