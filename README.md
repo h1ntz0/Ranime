@@ -16,58 +16,58 @@ A modern, high-performance, **local-first anime discovery, tracking, tier listin
 ### 1. 🏠 Immersive Home & Real-time Trends
 Dynamic hero carousel with AniList trending & popular synching, continue watching tray, and public community reviews.
 
-<img src="./docs/screenshots/01-home.png" alt="Ranime Homepage" width="100%" />
+![Ranime Homepage](docs/screenshots/01-home.png)
 
 ---
 
 ### 2. 📅 Interactive Airing Calendar & Countdown
 Weekly broadcast calendar with real-time countdown badges, day-of-week filtering (`Sunday`–`Saturday`), and air times.
 
-<img src="./docs/screenshots/02-airing-schedule.png" alt="Airing Schedule" width="100%" />
+![Airing Schedule](docs/screenshots/02-airing-schedule.png)
 
 ---
 
 ### 3. 🏆 Interactive Tier List Maker (`/tier-list`)
 Create custom visual Tier Lists (`S`, `A`, `B`, `C`, `D`, `F`) with quick search, slotting, tier renaming, color palettes, and PNG image export.
 
-<img src="./docs/screenshots/03-tier-list.png" alt="Tier List Maker" width="100%" />
+![Tier List Maker](docs/screenshots/03-tier-list.png)
 
 ---
 
 ### 4. 🎲 Discovery Recommendation Roulette (`/roulette`)
 Unsure what to watch? Spin the smart discovery roulette with genre, format, and score filters for instant serendipitous picks.
 
-<img src="./docs/screenshots/04-roulette.png" alt="Discovery Roulette" width="100%" />
+![Discovery Roulette](docs/screenshots/04-roulette.png)
 
 ---
 
 ### 5. ⚖️ Anime Comparison Matrix (`/compare`)
 Compare two anime side-by-side: community score, status, episode length, studio, source material, and genre overlap.
 
-<img src="./docs/screenshots/05-compare.png" alt="Anime Comparison Tool" width="100%" />
+![Anime Comparison Tool](docs/screenshots/05-compare.png)
 
 ---
 
 ### 6. 🔍 Advanced Catalog Explorer (`/explore`)
 Rich faceted filtering (Genres, Season, Year, Format, Studio, Airing Status, Sort) with instant query caching.
 
-<img src="./docs/screenshots/06-explore.png" alt="Catalog Explorer" width="100%" />
+![Catalog Explorer](docs/screenshots/06-explore.png)
 
 ---
 
 ### 7. 📖 Rich Anime Detail, Staff, & Franchise Timeline (`/anime/:id`)
 Comprehensive details with character roles (Main/Supporting/VA), staff, relations timeline, recommendations, and spoiler-safe reviews.
 
-<img src="./docs/screenshots/07-anime-detail.png" alt="Anime Detail & Timeline" width="100%" />
+![Anime Detail & Timeline](docs/screenshots/07-anime-detail.png)
 
 ---
 
 ### 8. 📱 Mobile-First Responsive Design
 Engineered with safe-area insets, mobile bottom navigation, command palette (`Ctrl+K` / `Cmd+K`), quick `+1 Ep` tracking, and native share sheets.
 
-<div align="center">
-  <img src="./docs/screenshots/10-mobile-responsive.png" width="380" alt="Mobile Experience" />
-</div>
+<p align="center">
+  <img src="docs/screenshots/10-mobile-responsive.png" width="380" alt="Mobile Experience" />
+</p>
 
 ---
 
