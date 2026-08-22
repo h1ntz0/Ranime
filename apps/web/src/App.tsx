@@ -21,6 +21,7 @@ import MyRatingsPage from './pages/MyRatingsPage'
 import MyReviewsPage from './pages/MyReviewsPage'
 import ComparePage from './pages/ComparePage'
 import RoulettePage from './pages/RoulettePage'
+import TierListPage from './pages/TierListPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/anime/:id" element={<AnimeDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/roulette" element={<RoulettePage />} />
+        <Route path="/tier-list" element={<TierListPage />} />
         <Route path="/top" element={<TopPage />} />
         <Route path="/season" element={<SeasonPage />} />
         <Route path="/genres" element={<GenresPage />} />
