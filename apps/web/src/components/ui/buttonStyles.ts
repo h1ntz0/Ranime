@@ -23,7 +23,7 @@ const sizes: Record<ButtonSize, string> = {
 
 export function buttonClass(variant: ButtonVariant = 'primary', size: ButtonSize = 'md'): string {
   return cn(
-    'inline-flex select-none items-center justify-center gap-2 rounded-sm font-medium transition-colors',
+    'inline-flex select-none items-center justify-center gap-2 rounded-sm font-medium transition-all duration-150 active:scale-[0.98]',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
     variants[variant],
     sizes[size],
