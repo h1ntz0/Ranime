@@ -77,13 +77,18 @@ export function Header() {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             to="/"
-            className="text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent-strong"
+            className="group flex items-center gap-2 text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent-strong"
             aria-label="Ranime home"
           >
-            Ranime
+            <img
+              src="/favicon.svg"
+              alt="Ranime mascot"
+              className="h-7 w-7 rounded-md transition-transform duration-200 group-hover:scale-110 shadow-xs"
+            />
+            <span className="bg-gradient-to-r from-ink via-ink to-ink-2 bg-clip-text">Ranime</span>
           </Link>
-          <span className="hidden rounded-sm border border-line px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-3 sm:inline">
-            Local
+          <span className="hidden rounded-sm border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent sm:inline">
+            Rate
           </span>
         </div>
 

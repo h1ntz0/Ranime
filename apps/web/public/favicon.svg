@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="hair-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#fb7185" />
+    </linearGradient>
+    <linearGradient id="eye-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#8b5cf6" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Badge Background with Glow -->
+  <rect width="100" height="100" rx="28" fill="url(#bg-grad)" />
+
+  <!-- Neko / Cat Ears -->
+  <polygon points="20,40 32,15 44,36" fill="#fb7185" />
+  <polygon points="26,38 33,22 40,36" fill="#fecdd3" />
+  
+  <polygon points="80,40 68,15 56,36" fill="#fb7185" />
+  <polygon points="74,38 67,22 60,36" fill="#fecdd3" />
+
+  <!-- Chibi Head Base -->
+  <ellipse cx="50" cy="56" rx="34" ry="30" fill="#fff1f2" />
+
+  <!-- Cute Hair Bangs -->
+  <!-- Left hair clump -->
+  <path d="M 18,52 Q 22,25 50,25 Q 78,25 82,52 Q 78,42 70,36 Q 50,42 30,36 Q 22,42 18,52 Z" fill="url(#hair-grad)" />
+  <!-- Center bang -->
+  <path d="M 44,32 Q 50,48 56,32 Q 50,30 44,32 Z" fill="#e11d48" />
+
+  <!-- Blush Cheeks -->
+  <ellipse cx="28" cy="62" rx="7" ry="4" fill="#fda4af" opacity="0.8" />
+  <ellipse cx="72" cy="62" rx="7" ry="4" fill="#fda4af" opacity="0.8" />
+
+  <!-- Big Sparkly Anime Left Eye -->
+  <ellipse cx="36" cy="54" rx="7" ry="9" fill="#1e1b4b" />
+  <ellipse cx="36" cy="55" rx="6" ry="8" fill="url(#eye-grad)" />
+  <!-- Eye highlights (twinkle) -->
+  <circle cx="34" cy="50" r="3" fill="#ffffff" />
+  <circle cx="38.5" cy="58" r="1.5" fill="#ffffff" />
+
+  <!-- Big Sparkly Anime Right Eye -->
+  <ellipse cx="64" cy="54" rx="7" ry="9" fill="#1e1b4b" />
+  <ellipse cx="64" cy="55" rx="6" ry="8" fill="url(#eye-grad)" />
+  <!-- Eye highlights (twinkle) -->
+  <circle cx="62" cy="50" r="3" fill="#ffffff" />
+  <circle cx="66.5" cy="58" r="1.5" fill="#ffffff" />
+
+  <!-- Cute Cat-like Smile :3 -->
+  <path d="M 45,64 Q 48,68 50,65 Q 52,68 55,64" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+  <!-- Sparkle Star on Top Right -->
+  <path d="M 82,18 Q 85,22 89,22 Q 85,22 82,26 Q 82,22 78,22 Q 82,22 82,18 Z" fill="#fde047" />
+</svg>
