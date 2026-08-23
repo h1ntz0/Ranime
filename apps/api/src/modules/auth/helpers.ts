@@ -5,23 +5,25 @@ import type { AuthService } from './service.js'
 
 export const SESSION_COOKIE = 'animelist_session'
 
-export const COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  secure: false,
-  path: '/',
-}
-
 export function setSessionCookie(reply: FastifyReply, token: string, env: { NODE_ENV: string }): void {
+  const isProd = env.NODE_ENV === 'production'
   reply.setCookie(SESSION_COOKIE, token, {
-    ...COOKIE_OPTIONS,
-    secure: env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    path: '/',
     maxAge: 60 * 60 * 24 * 30,
   })
 }
 
-export function clearSessionCookie(reply: FastifyReply): void {
-  reply.clearCookie(SESSION_COOKIE, COOKIE_OPTIONS)
+export function clearSessionCookie(reply: FastifyReply, env?: { NODE_ENV: string }): void {
+  const isProd = env?.NODE_ENV === 'production' || process.env.NODE_ENV === 'production'
+  reply.clearCookie(SESSION_COOKIE, {
+    httpOnly: true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    path: '/',
+  })
 }
 
 export function toPublicUser(user: {

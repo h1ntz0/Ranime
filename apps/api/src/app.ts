@@ -84,8 +84,21 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   errorHandler(app)
 
+  const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim())
+
   app.register(cors, {
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true)
+      }
+      return callback(null, false)
+    },
     credentials: true,
   })
   app.register(cookie)
