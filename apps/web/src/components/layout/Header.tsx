@@ -31,7 +31,7 @@ function linkClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function Header() {
-  const { user, logout } = useAuth()
+  const { user, loading, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -245,6 +245,8 @@ export function Header() {
                 )}
               </div>
             </>
+          ) : loading ? (
+            <div className="h-8 w-20 animate-pulse rounded-sm bg-surface-raised/40" />
           ) : (
             <div className="flex items-center gap-2">
               <Link
