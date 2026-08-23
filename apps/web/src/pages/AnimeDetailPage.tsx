@@ -160,36 +160,43 @@ export default function AnimeDetailPage() {
     queryKey: ['anime', animeId],
     queryFn: ({ signal }) => fetchAnimeDetail(animeId, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 10 * 60 * 1000,
   })
   const characters = useQuery({
     queryKey: ['anime', animeId, 'characters', charPage],
     queryFn: ({ signal }) => fetchCharacters(animeId, charPage, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 10 * 60 * 1000,
   })
   const staff = useQuery({
     queryKey: ['anime', animeId, 'staff'],
     queryFn: ({ signal }) => fetchStaff(animeId, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 10 * 60 * 1000,
   })
   const relations = useQuery({
     queryKey: ['anime', animeId, 'relations'],
     queryFn: ({ signal }) => fetchRelations(animeId, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 10 * 60 * 1000,
   })
   const recommendations = useQuery({
     queryKey: ['anime', animeId, 'recs'],
     queryFn: ({ signal }) => fetchRecommendations(animeId, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 10 * 60 * 1000,
   })
   const ratings = useQuery({
     queryKey: ['anime', animeId, 'ratings'],
     queryFn: ({ signal }) => fetchRatings(animeId, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 2 * 60 * 1000,
   })
   const reviews = useQuery({
     queryKey: ['anime', animeId, 'reviews', reviewPage],
     queryFn: ({ signal }) => fetchReviews(animeId, reviewPage, signal),
     enabled: Number.isFinite(animeId),
+    staleTime: 2 * 60 * 1000,
   })
   const myReview = useQuery({
     queryKey: ['anime', animeId, 'myReview', user?.id],

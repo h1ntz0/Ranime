@@ -33,6 +33,26 @@ query MediaPage(
   }
 }`
 
+export const MEDIA_BASIC_DETAIL_QUERY = `
+query MediaBasicDetail($id: Int) {
+  Media(id: $id, type: ANIME, isAdult: false) {
+    id siteUrl
+    title { romaji english native }
+    description(asHtml: false)
+    coverImage { extraLarge large }
+    bannerImage
+    startDate { year month day }
+    endDate { year month day }
+    season seasonYear
+    format status episodes duration
+    averageScore popularity trending
+    source countryOfOrigin
+    genres
+    studios(isMain: true) { nodes { id name } }
+    nextAiringEpisode { episode airingAt timeUntilAiring }
+  }
+}`
+
 export const MEDIA_DETAIL_QUERY = `
 query MediaDetail($id: Int, $charPage: Int, $charPerPage: Int, $staffPerPage: Int, $recPage: Int, $recPerPage: Int) {
   Media(id: $id, type: ANIME, isAdult: false) {
