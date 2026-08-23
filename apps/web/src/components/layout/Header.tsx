@@ -307,101 +307,132 @@ export function Header() {
       {/* Mobile Full Menu Drawer */}
       {open && (
         <nav
-          className="max-h-[calc(100vh-3.5rem)] overflow-y-auto border-t border-line bg-background/98 px-4 py-4 lg:hidden"
+          className="max-h-[80vh] overflow-y-auto border-t border-line bg-background/95 px-4 py-3 shadow-2xl backdrop-blur-xl lg:hidden"
           aria-label="Mobile navigation"
         >
-          <div className="flex flex-col gap-4">
-            {/* Discover Section */}
-            <div>
-              <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Discover</p>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {MAIN_NAV.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={linkClass}
+          <div className="flex flex-col gap-3.5">
+            {/* User Account Summary Card (if logged in) */}
+            {user ? (
+              <div className="rounded-lg border border-line bg-surface/60 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Link
+                    to={`/profile/${user.username}`}
                     onClick={() => setOpen(false)}
-                    end={item.to === '/' || item.to === '/explore'}
+                    className="flex min-w-0 items-center gap-2.5 hover:opacity-80 transition-opacity"
                   >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-
-            {/* Tools Section */}
-            <div>
-              <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Tools & Games</p>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {TOOLS_NAV.map((tool) => (
-                  <NavLink
-                    key={tool.to}
-                    to={tool.to}
-                    className={linkClass}
-                    onClick={() => setOpen(false)}
-                  >
-                    <span className="mr-2">{tool.icon}</span>
-                    {tool.label}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-
-            {/* User / Auth Section */}
-            <div className="border-t border-line pt-3">
-              {user ? (
-                <div>
-                  <div className="mb-2 flex items-center gap-2.5 px-2.5">
-                    <Poster src={user.avatarUrl} alt={user.username} className="h-8 w-8 rounded-full" />
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{user.username}</p>
-                      <p className="text-xs text-ink-3">{user.email}</p>
+                    <Poster src={user.avatarUrl} alt={user.username} className="h-9 w-9 rounded-full border border-line shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-ink truncate">{user.username}</p>
+                      <p className="text-[11px] text-ink-3 truncate">{user.email}</p>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <NavLink to="/library" className={linkClass} onClick={() => setOpen(false)}>
-                      Library
-                    </NavLink>
-                    <NavLink to="/watchlist" className={linkClass} onClick={() => setOpen(false)}>
-                      Watchlist
-                    </NavLink>
-                    <NavLink to="/statistics" className={linkClass} onClick={() => setOpen(false)}>
-                      Statistics
-                    </NavLink>
-                    <NavLink to="/my-ratings" className={linkClass} onClick={() => setOpen(false)}>
-                      My Ratings
-                    </NavLink>
-                    <NavLink to="/my-reviews" className={linkClass} onClick={() => setOpen(false)}>
-                      My Reviews
-                    </NavLink>
-                    <NavLink to={`/profile/${user.username}`} className={linkClass} onClick={() => setOpen(false)}>
-                      Profile
-                    </NavLink>
-                    <NavLink to="/settings" className={linkClass} onClick={() => setOpen(false)}>
+                  </Link>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Link
+                      to="/settings"
+                      onClick={() => setOpen(false)}
+                      className="rounded-md border border-line bg-surface-raised px-2.5 py-1 text-[11px] font-medium text-ink hover:bg-surface-hover transition-colors"
+                    >
                       Settings
-                    </NavLink>
-                    <Button
-                      variant="danger"
-                      className="mt-2 w-full justify-start rounded-sm px-2.5 py-2"
+                    </Link>
+                    <button
+                      type="button"
                       onClick={() => {
                         setOpen(false)
                         void handleLogout()
                       }}
+                      className="rounded-md px-2 py-1 text-[11px] font-medium text-danger hover:bg-danger/10 transition-colors"
                     >
                       Logout
-                    </Button>
+                    </button>
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2 pt-1">
-                  <NavLink to="/login" className={linkClass} onClick={() => setOpen(false)}>
-                    Login
+
+                {/* User 2x2 Fast Actions Grid */}
+                <div className="mt-2.5 grid grid-cols-2 gap-1.5 pt-2.5 border-t border-line/60">
+                  <NavLink
+                    to="/library"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                  >
+                    <span>📚</span> Library
                   </NavLink>
-                  <NavLink to="/register" className={linkClass} onClick={() => setOpen(false)}>
-                    Register
+                  <NavLink
+                    to="/watchlist"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                  >
+                    <span>⏱️</span> Watchlist
+                  </NavLink>
+                  <NavLink
+                    to="/my-ratings"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                  >
+                    <span>⭐</span> My Ratings
+                  </NavLink>
+                  <NavLink
+                    to="/my-reviews"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                  >
+                    <span>✍️</span> My Reviews
                   </NavLink>
                 </div>
-              )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-surface/40 p-2.5">
+                <NavLink
+                  to="/login"
+                  className="flex items-center justify-center rounded-md border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-raised transition-colors"
+                  onClick={() => setOpen(false)}
+                >
+                  Login
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  className="flex items-center justify-center rounded-md bg-ink px-3 py-2 text-xs font-semibold text-background hover:bg-white transition-colors"
+                  onClick={() => setOpen(false)}
+                >
+                  Register
+                </NavLink>
+              </div>
+            )}
+
+            {/* Discover Grid (2 columns) */}
+            <div>
+              <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Discover</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                {MAIN_NAV.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className="flex items-center justify-between rounded-md border border-line/60 bg-surface/40 px-3 py-2 text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-all active:scale-[0.98]"
+                    onClick={() => setOpen(false)}
+                    end={item.to === '/' || item.to === '/explore'}
+                  >
+                    <span>{item.label}</span>
+                    <span className="text-ink-4 text-[10px]">→</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+
+            {/* Tools & Games Grid (3 columns) */}
+            <div>
+              <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Tools & Games</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                {TOOLS_NAV.map((tool) => (
+                  <NavLink
+                    key={tool.to}
+                    to={tool.to}
+                    className="flex flex-col items-center justify-center rounded-md border border-line/60 bg-surface/40 p-2.5 text-center text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-all active:scale-[0.98]"
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="text-lg leading-none mb-1">{tool.icon}</span>
+                    <span className="text-[11px] truncate w-full">{tool.label}</span>
+                  </NavLink>
+                ))}
+              </div>
             </div>
           </div>
         </nav>
