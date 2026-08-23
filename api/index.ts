@@ -1,21 +1,24 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { buildApp } from '../apps/api/src/app.js'
 
-let appPromise: ReturnType<typeof buildApp> | null = null
+let cachedApp: any = null
 
 async function getApp() {
-  if (!appPromise) {
-    appPromise = buildApp({
-      logger: false,
-    }).then(async (app) => {
-      await app.ready()
-      return app
-    })
+  if (!cachedApp) {
+    const { buildApp } = await import('../apps/api/src/app.js')
+    const app = await buildApp({ logger: false })
+    await app.ready()
+    cachedApp = app
   }
-  return appPromise
+  return cachedApp
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  const app = await getApp()
-  app.server.emit('request', req, res)
+  try {
+    const app = await getApp()
+    app.server.emit('request', req, res)
+  } catch (err: any) {
+    res.statusCode = 500
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ error: { message: err?.message || 'Server error', stack: err?.stack } }))
+  }
 }
