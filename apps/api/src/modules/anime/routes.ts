@@ -21,20 +21,25 @@ const pageQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 
+const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+
 export async function animeRoutes(app: FastifyInstance): Promise<void> {
   app.get('/anime', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const query = listQuerySchema.parse(request.query)
     const result = await app.animeService.list(query)
     return sendPage(reply, result)
   })
 
   app.get('/anime/:id', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { id } = idParamSchema.parse(request.params)
     const result = await app.animeService.detail(id)
     return sendData(reply, result)
   })
 
   app.get('/anime/:id/characters', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { id } = idParamSchema.parse(request.params)
     const query = pageQuerySchema.parse(request.query)
     const result = await app.animeService.characters(id, query.page ?? 1, query.limit ?? 25)
@@ -42,18 +47,21 @@ export async function animeRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/anime/:id/staff', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { id } = idParamSchema.parse(request.params)
     const result = await app.animeService.staff(id)
     return sendData(reply, result)
   })
 
   app.get('/anime/:id/relations', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { id } = idParamSchema.parse(request.params)
     const result = await app.animeService.relations(id)
     return sendData(reply, result)
   })
 
   app.get('/anime/:id/recommendations', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { id } = idParamSchema.parse(request.params)
     const query = pageQuerySchema.parse(request.query)
     const result = await app.animeService.recommendations(id, query.page ?? 1, query.limit ?? 15)
