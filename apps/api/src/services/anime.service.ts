@@ -184,7 +184,12 @@ export class AnimeService {
         perPage,
         hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
       }
-      await this.persistMediaCards(cards)
+      // Persist in background so user doesn't wait 10+ seconds for batch database upserts (sync in tests)
+      if (process.env.NODE_ENV === 'test') {
+        await this.persistMediaCards(cards)
+      } else {
+        void this.persistMediaCards(cards).catch(() => {})
+      }
     } catch (error) {
       if (!(error instanceof AniListError)) throw error
       result = await this.listFromLocal(params, page, perPage)
@@ -947,7 +952,11 @@ export class AnimeService {
         perPage,
         hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
       }
-      await this.persistMediaCards(cards)
+      if (process.env.NODE_ENV === 'test') {
+        await this.persistMediaCards(cards)
+      } else {
+        void this.persistMediaCards(cards).catch(() => {})
+      }
     } catch (error) {
       if (!(error instanceof AniListError)) throw error
       const rows = await this.db

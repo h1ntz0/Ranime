@@ -24,13 +24,17 @@ const TOP_SORT: Record<string, string> = {
   trending: 'TRENDING',
 }
 
+const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+
 export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   app.get('/genres', async (_request, reply) => {
+    reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400')
     const result = await app.animeService.genresList()
     return sendData(reply, result)
   })
 
   app.get('/genres/:slug', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { slug } = genreSlugSchema.parse(request.params)
     const query = topQuerySchema.omit({ category: true }).parse(request.query)
     const genre = (await app.animeService.genresList()).find((g) => g.slug === slug)
@@ -45,6 +49,7 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/season', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const query = seasonQuerySchema.parse(request.query)
     const result = await app.animeService.list({
       season: query.season,
@@ -57,6 +62,7 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/top', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const query = topQuerySchema.parse(request.query)
     const result = await app.animeService.list({
       sort: TOP_SORT[query.category] ?? 'SCORE',
@@ -67,17 +73,20 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/airing', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const query = topQuerySchema.omit({ category: true }).parse(request.query)
     const result = await app.animeService.airing(query.page ?? 1, query.limit ?? 20)
     return sendPage(reply, result)
   })
 
   app.get('/studios', async (_request, reply) => {
+    reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400')
     const result = await app.animeService.studiosList()
     return sendData(reply, result)
   })
 
   app.get('/studios/:slug', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const { slug } = genreSlugSchema.parse(request.params)
     const query = topQuerySchema.omit({ category: true }).parse(request.query)
     const result = await app.animeService.studioAnime(slug, query.page ?? 1, query.limit ?? 20)
