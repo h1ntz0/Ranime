@@ -1,7 +1,7 @@
 import { hash } from 'argon2'
 import { sql } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
-import pg from 'pg'
+import { createPool } from './pool.js'
 import { genres, users } from './schema.js'
 
 export const DEMO_USER = {
@@ -41,7 +41,7 @@ function slugify(name: string): string {
 }
 
 export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase } = {}): Promise<string[]> {
-  const pool = opts.db ? undefined : new pg.Pool({ connectionString: databaseUrl })
+  const pool = opts.db ? undefined : createPool(databaseUrl)
   try {
     const client = opts.db ?? drizzle(pool!)
     const created: string[] = []

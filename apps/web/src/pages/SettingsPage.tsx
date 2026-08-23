@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { changePassword, updateProfile, uploadAvatar } from '../lib/api'
+import { API_BASE, changePassword, updateProfile, uploadAvatar } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Poster } from '../components/Poster'
@@ -191,7 +191,7 @@ export default function SettingsPage() {
             variant="secondary"
             onClick={async () => {
               try {
-                const res = await fetch('/api/library?limit=500', { credentials: 'include' })
+                const res = await fetch(`${API_BASE}/library?limit=500`, { credentials: 'include' })
                 const data = await res.json()
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
                 const url = URL.createObjectURL(blob)
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             variant="secondary"
             onClick={async () => {
               try {
-                const res = await fetch('/api/library?limit=500', { credentials: 'include' })
+                const res = await fetch(`${API_BASE}/library?limit=500`, { credentials: 'include' })
                 const json = await res.json()
                 const items = json.data?.items ?? []
                 const headers = ['id', 'title', 'status', 'currentEpisode', 'totalEpisodes', 'score']
@@ -270,7 +270,7 @@ export default function SettingsPage() {
                     const status = it.status || 'PLANNING'
                     const currentEpisode = it.currentEpisode || 0
                     if (animeId) {
-                      await fetch(`/api/watchlist/${animeId}`, {
+                      await fetch(`${API_BASE}/watchlist/${animeId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status, currentEpisode }),

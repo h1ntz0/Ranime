@@ -20,7 +20,8 @@ import type {
   UserProfile,
 } from './types'
 
-const API_BASE = '/api'
+const BACKEND_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+export const API_BASE = `${BACKEND_BASE}/api`
 
 export class ApiError extends Error {
   constructor(

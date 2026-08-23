@@ -42,7 +42,7 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
   )
 
   app.post('/auth/logout', async (_request, reply) => {
-    clearSessionCookie(reply)
+    clearSessionCookie(reply, app.env)
     return reply.code(204).send()
   })
 
