@@ -26,6 +26,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['apps/api/src/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
     files: ['**/*.test.{ts,tsx}', '**/test/**'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

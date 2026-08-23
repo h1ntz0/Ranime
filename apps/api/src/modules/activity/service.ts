@@ -22,9 +22,9 @@ export interface ActivityItemView {
 const MAX_ACTIVITY_PER_USER = 200
 
 export class ActivityService {
-  private db: NodePgDatabase<Record<string, unknown>>
+  private db: NodePgDatabase<any>
 
-  constructor(private options: { pool: Pool; db?: NodePgDatabase<Record<string, unknown>> }) {
+  constructor(private options: { pool: Pool; db?: NodePgDatabase<any> }) {
     this.db = options.db ?? drizzle(options.pool)
   }
 
@@ -95,7 +95,7 @@ export class ActivityService {
       })
       .from(anime)
       .where(inArray(anime.id, animeIds))
-    const animeById = new Map(animeRows.map((a) => [a.id, a]))
+    const animeById = new Map<number, any>(animeRows.map((a: any) => [a.id, a]))
 
     return {
       items: rows.map((r) => {

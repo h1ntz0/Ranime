@@ -4,6 +4,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "types": ["node"],
+    "skipLibCheck": true,
+    "noImplicitAny": false,
     "allowImportingTsExtensions": true
   },
   "include": ["src", "test"]

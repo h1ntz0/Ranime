@@ -27,7 +27,7 @@ export default function TierListPage() {
 
   const topAnime = useQuery({
     queryKey: ['tier-list', 'top'],
-    queryFn: ({ signal }) => fetchTop('all', 1, signal),
+    queryFn: ({ signal }) => fetchTop('top-rated', 1, signal),
   })
 
   // Pool of anime not yet placed in any tier
@@ -106,7 +106,7 @@ export default function TierListPage() {
 
       {/* Tier Board */}
       <div className="space-y-3 rounded-xl border border-line bg-surface/30 p-3 sm:p-4">
-        {tiers.map((tierRow, tierIndex) => (
+        {tiers.map((tierRow) => (
           <div
             key={tierRow.tier}
             className="flex min-h-[90px] flex-col rounded-lg border border-line bg-surface/40 sm:flex-row"

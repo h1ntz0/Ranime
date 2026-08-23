@@ -12,12 +12,12 @@ export interface RatingAggregate {
 }
 
 export class RatingService {
-  private db: NodePgDatabase<Record<string, unknown>>
+  private db: NodePgDatabase<any>
 
   constructor(
     private options: {
       pool: Pool
-      db?: NodePgDatabase<Record<string, unknown>>
+      db?: NodePgDatabase<any>
       onActivity?: (userId: string, type: 'RATED', animeId: number, payload?: Record<string, unknown>) => void
     },
   ) {

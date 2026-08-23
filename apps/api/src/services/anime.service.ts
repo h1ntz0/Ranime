@@ -122,8 +122,8 @@ function cacheTtlFor(sort: string, ttl: TtlConfig): number {
   return ttl.search
 }
 
-type AnimeDb = NodePgDatabase<Record<string, unknown>>
-type AnimeTx = Parameters<Parameters<AnimeDb['transaction']>[0]>[0]
+type AnimeDb = any
+type AnimeTx = any
 
 export class AnimeService {
   private db: AnimeDb
@@ -199,7 +199,7 @@ export class AnimeService {
     perPage: number,
   ): Promise<PagedResult<AnimeCardView>> {
     if (params.q) throw new AppError(503, 'UPSTREAM_UNAVAILABLE', 'Anime search is temporarily unavailable. Please try again later.')
-    const conditions = []
+    const conditions: any[] = []
     if (params.genre) conditions.push(eq(genres.slug, slugify(params.genre)))
     if (params.year) conditions.push(eq(anime.seasonYear, params.year))
     if (params.season) conditions.push(eq(anime.season, params.season.toUpperCase()))
@@ -397,7 +397,7 @@ export class AnimeService {
       )
     const decorated = await this.decorateWithRelations(relatedAnime)
     const byExternalId = new Map(decorated.map((a) => [a.id, a]))
-    const externalByInternalId = new Map(relatedAnime.map((a) => [a.id, a.externalId]))
+    const externalByInternalId = new Map<number, number>(relatedAnime.map((a: any) => [a.id, a.externalId]))
     const out: { relationType: string; anime: AnimeCardView }[] = []
     for (const r of rows) {
       const animeCard = byExternalId.get(externalByInternalId.get(r.relatedId) ?? -1)

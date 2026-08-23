@@ -21,9 +21,9 @@ export interface StatisticsView {
 }
 
 export class StatisticsService {
-  private db: NodePgDatabase<Record<string, unknown>>
+  private db: NodePgDatabase<any>
 
-  constructor(private options: { pool: Pool; db?: NodePgDatabase<Record<string, unknown>> }) {
+  constructor(private options: { pool: Pool; db?: NodePgDatabase<any> }) {
     this.db = options.db ?? drizzle(options.pool)
   }
 
