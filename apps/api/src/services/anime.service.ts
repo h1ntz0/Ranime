@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
@@ -872,7 +872,11 @@ export class AnimeService {
   /* ---------------- misc ---------------- */
 
   async genresList(): Promise<Genre[]> {
-    return this.db.select({ id: genres.id, name: genres.name, slug: genres.slug }).from(genres).orderBy(genres.name)
+    return this.db
+      .select({ id: genres.id, name: genres.name, slug: genres.slug })
+      .from(genres)
+      .where(and(ne(genres.slug, 'hentai'), ne(genres.name, 'Hentai')))
+      .orderBy(genres.name)
   }
 
   async studiosList(): Promise<{ name: string; slug: string; count: number }[]> {
