@@ -84,6 +84,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   errorHandler(app)
 
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('X-Content-Type-Options', 'nosniff')
+    reply.header('X-Frame-Options', 'DENY')
+    reply.header('X-XSS-Protection', '1; mode=block')
+    reply.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+    reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  })
+
   const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim())
 
   app.register(cors, {

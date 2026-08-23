@@ -110,66 +110,65 @@ export async function usersRoutes(
     return sendData(reply, toPublicUser({ ...updated, avatarUrl: updated.avatar_url, createdAt: new Date(updated.created_at) }))
   })
 
-  app.post('/users/me/avatar', { preHandler: app.requireAuth }, async (request, reply) => {
-    const user = request.user!
-    const part = await request.file()
-    if (!part) throw new AppError(422, 'VALIDATION_ERROR', 'Image file is required')
+  app.post(
+    '/users/me/avatar',
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const user = request.user!
+      const part = await request.file()
+      if (!part) throw new AppError(422, 'VALIDATION_ERROR', 'Image file is required')
 
-    if (
-      part.mimetype !== 'image/jpeg' &&
-      part.mimetype !== 'image/png' &&
-      part.mimetype !== 'image/webp'
-    ) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be a JPEG, PNG or WebP image')
-    }
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp']
+      if (!allowedMimes.includes(part.mimetype)) {
+        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be a JPEG, PNG or WebP image')
+      }
 
-    const buffer = await part.toBuffer()
-    if (buffer.length === 0) throw new AppError(422, 'VALIDATION_ERROR', 'Avatar file is empty')
-    if (buffer.length > 2 * 1024 * 1024) {
-      throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 2 MB')
-    }
+      const buffer = await part.toBuffer()
+      if (buffer.length === 0) throw new AppError(422, 'VALIDATION_ERROR', 'Avatar file is empty')
+      if (buffer.length > 1.5 * 1024 * 1024) {
+        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 1.5 MB')
+      }
 
-    const ext = part.mimetype === 'image/png' ? 'png' : part.mimetype === 'image/webp' ? 'webp' : 'jpg'
-    const filename = `${user.id}-${randomUUID()}.${ext}`
-    await mkdir(UPLOAD_DIR, { recursive: true })
-    await writeFile(join(UPLOAD_DIR, filename), buffer)
+      // Convert to clean base64 data URI for zero-dependency resilient storage across serverless / cloud
+      const avatarUrl = `data:${part.mimetype};base64,${buffer.toString('base64')}`
 
-    const old = (
-      await app.pool.query<{ avatar_url: string | null }>(`SELECT avatar_url FROM users WHERE id = $1`, [
+      await app.pool.query(`UPDATE users SET avatar_url = $1, updated_at = now() WHERE id = $2`, [
+        avatarUrl,
         user.id,
       ])
-    ).rows[0]
 
-    await app.pool.query(`UPDATE users SET avatar_url = $1, updated_at = now() WHERE id = $2`, [
-      `/uploads/avatars/${filename}`,
-      user.id,
-    ])
+      return sendData(reply, { avatarUrl })
+    },
+  )
 
-    if (old?.avatar_url?.startsWith('/uploads/avatars/')) {
-      rm(join(UPLOAD_DIR, old.avatar_url.split('/').pop()!), { force: true }).catch(() => {})
-    }
+  app.patch(
+    '/users/me/password',
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const input = changePasswordSchema.parse(request.body)
+      const user = request.user!
+      const row = (
+        await app.pool.query<{ password_hash: string }>(`SELECT password_hash FROM users WHERE id = $1`, [
+          user.id,
+        ])
+      ).rows[0]
+      const valid = row && (await argon2.verify(row.password_hash, input.currentPassword))
+      if (!valid) throw unauthorized('Current password is incorrect')
 
-    return sendData(reply, { avatarUrl: `/uploads/avatars/${filename}` })
-  })
-
-  app.patch('/users/me/password', { preHandler: app.requireAuth }, async (request, reply) => {
-    const input = changePasswordSchema.parse(request.body)
-    const user = request.user!
-    const row = (
-      await app.pool.query<{ password_hash: string }>(`SELECT password_hash FROM users WHERE id = $1`, [
+      const hash = await argon2.hash(input.newPassword, { type: argon2.argon2id })
+      await app.pool.query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [
+        hash,
         user.id,
       ])
-    ).rows[0]
-    const valid = row && (await argon2.verify(row.password_hash, input.currentPassword))
-    if (!valid) throw unauthorized('Current password is incorrect')
-
-    const hash = await argon2.hash(input.newPassword, { type: argon2.argon2id })
-    await app.pool.query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [
-      hash,
-      user.id,
-    ])
-    return reply.code(204).send()
-  })
+      return reply.code(204).send()
+    },
+  )
 
   app.get('/users/:username/activity', async (request, reply) => {
     const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
