@@ -228,7 +228,7 @@ export default function SettingsPage() {
               }
             }}
           >
-            📥 Export Library (JSON)
+            Export JSON
           </Button>
           <Button
             type="button"
@@ -266,11 +266,11 @@ export default function SettingsPage() {
               }
             }}
           >
-            📊 Export Library (CSV)
+            Export CSV
           </Button>
 
           <label className="inline-flex w-full sm:w-auto cursor-pointer items-center justify-center rounded-sm border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-xs hover:bg-surface-raised transition-colors active:scale-[0.98]">
-            <span>📤 Import Backup (JSON)</span>
+            <span>Import JSON</span>
             <input
               type="file"
               accept=".json"
