@@ -2,6 +2,7 @@
   "name": "animelist-local",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Anime discovery, catalog, tracking, rating and review platform. Local-first, powered by AniList.",
   "workspaces": [
     "apps/*",

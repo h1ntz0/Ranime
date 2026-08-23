@@ -716,7 +716,7 @@ export class AnimeService {
                 eq(animeCharacters.animeId, local.id),
                 inArray(
                   animeCharacters.characterId,
-                  charJoins.map((j) => j.characterId),
+                  charJoins.map((j) => j.characterId as number),
                 ),
               )
             : eq(animeCharacters.animeId, local.id),
