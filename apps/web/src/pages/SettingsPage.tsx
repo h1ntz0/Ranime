@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { API_BASE, changePassword, updateProfile, uploadAvatar } from '../lib/api'
+import { compressAvatarImage } from '../lib/image'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Poster } from '../components/Poster'
@@ -71,10 +72,11 @@ export default function SettingsPage() {
     if (!file) return
     setUploading(true)
     try {
-      const { avatarUrl } = await uploadAvatar(file)
+      const compressed = await compressAvatarImage(file)
+      const { avatarUrl } = await uploadAvatar(compressed)
       if (!me) return
       setUser({ ...me, avatarUrl })
-      toast('Avatar updated')
+      toast('Avatar updated successfully!')
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Avatar upload failed', 'error')
     } finally {
@@ -83,24 +85,43 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="text-xl font-semibold tracking-tight text-ink">Settings</h1>
+    <div className="mx-auto max-w-lg px-2 sm:px-0">
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Settings</h1>
 
-      <section aria-label="Profile" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+      <section aria-label="Profile" className="mt-6 rounded-lg border border-line bg-surface/40 p-4 sm:p-5">
         <h2 className="text-sm font-semibold text-ink">Profile</h2>
-        <div className="mt-4 flex items-center gap-3">
-          <Poster src={me.avatarUrl} alt="" className="h-14 w-14 rounded-full" />
-          <div>
-            <label className="text-sm text-ink-2">Avatar</label>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={uploading}
-              onChange={(e) => onAvatarChange(e.target.files?.[0])}
-              className="block text-sm text-ink-3 file:mr-3 file:rounded-sm file:border-0 file:bg-surface-raised file:px-3 file:py-1.5 file:text-sm file:text-ink transition-colors hover:file:bg-surface-hover disabled:opacity-50"
-              aria-label="Upload avatar image"
-            />
-            <p className="mt-1 text-xs text-ink-4">JPEG, PNG or WebP, up to 2 MB.</p>
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="relative shrink-0">
+            <Poster src={me.avatarUrl} alt="" className="h-16 w-16 rounded-full border-2 border-line object-cover" />
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <label className="block text-xs font-medium uppercase tracking-wider text-ink-3">
+              Avatar Image
+            </label>
+            <div className="mt-2 flex items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-sm border border-line bg-surface-raised px-3 py-1.5 text-xs font-semibold text-ink shadow-xs transition-colors hover:bg-surface-hover active:scale-[0.98]">
+                <span>{uploading ? 'Compressing & Uploading...' : 'Upload Photo'}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) onAvatarChange(f)
+                  }}
+                  className="hidden"
+                  aria-label="Upload avatar image"
+                />
+              </label>
+            </div>
+            <p className="mt-1 text-[11px] text-ink-4">
+              JPG, PNG, or WebP. Auto-compressed for instant mobile uploads.
+            </p>
           </div>
         </div>
         <form onSubmit={onProfileSubmit} className="mt-2" noValidate>
@@ -129,13 +150,13 @@ export default function SettingsPage() {
               {profileError}
             </p>
           ) : null}
-          <Button type="submit" disabled={savingProfile} className="mt-4">
+          <Button type="submit" disabled={savingProfile} className="mt-4 w-full sm:w-auto">
             {savingProfile ? 'Saving…' : 'Save profile'}
           </Button>
         </form>
       </section>
 
-      <section aria-label="Password" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+      <section aria-label="Password" className="mt-6 rounded-lg border border-line bg-surface/40 p-4 sm:p-5">
         <h2 className="text-sm font-semibold text-ink">Change password</h2>
         <form onSubmit={onPasswordSubmit} className="mt-2" noValidate>
           <Field label="Current password" htmlFor="set-current" className="mt-4">
@@ -174,21 +195,22 @@ export default function SettingsPage() {
               {passwordError}
             </p>
           ) : null}
-          <Button type="submit" disabled={savingPassword} className="mt-4">
+          <Button type="submit" disabled={savingPassword} className="mt-4 w-full sm:w-auto">
             {savingPassword ? 'Changing…' : 'Change password'}
           </Button>
         </form>
       </section>
 
-      <section aria-label="Data Backup" className="mt-6 rounded-sm border border-line bg-surface/40 p-5">
+      <section aria-label="Data Backup" className="mt-6 rounded-lg border border-line bg-surface/40 p-4 sm:p-5">
         <h2 className="text-sm font-semibold text-ink">Data Management & Backup</h2>
         <p className="mt-1 text-xs text-ink-3">
           Export your complete anime library and watch history or import from another backup.
         </p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-2.5">
           <Button
             type="button"
             variant="secondary"
+            className="w-full sm:w-auto justify-center"
             onClick={async () => {
               try {
                 const res = await fetch(`${API_BASE}/library?limit=500`, { credentials: 'include' })
@@ -211,6 +233,7 @@ export default function SettingsPage() {
           <Button
             type="button"
             variant="secondary"
+            className="w-full sm:w-auto justify-center"
             onClick={async () => {
               try {
                 const res = await fetch(`${API_BASE}/library?limit=500`, { credentials: 'include' })
@@ -246,7 +269,7 @@ export default function SettingsPage() {
             📊 Export Library (CSV)
           </Button>
 
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-sm border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-xs hover:bg-surface-raised transition-colors">
+          <label className="inline-flex w-full sm:w-auto cursor-pointer items-center justify-center rounded-sm border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink shadow-xs hover:bg-surface-raised transition-colors active:scale-[0.98]">
             <span>📤 Import Backup (JSON)</span>
             <input
               type="file"

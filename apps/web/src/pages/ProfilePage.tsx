@@ -53,14 +53,16 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <div className="flex items-center gap-4">
-        <Poster src={p.avatarUrl} alt={p.username} className="h-16 w-16 rounded-full" />
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ink">{p.username}</h1>
-          <p className="text-sm text-ink-3">Joined {joined}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Poster src={p.avatarUrl} alt={p.username} className="h-16 w-16 rounded-full border-2 border-line object-cover shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight text-ink truncate">{p.username}</h1>
+            <p className="text-sm text-ink-3">Joined {joined}</p>
+          </div>
         </div>
         {user?.id === p.id && (
-          <Link to="/settings" className={`${buttonClass('secondary')} ml-auto`}>
+          <Link to="/settings" className={`${buttonClass('secondary')} w-full sm:w-auto text-center justify-center`}>
             Edit profile
           </Link>
         )}
@@ -74,14 +76,14 @@ export default function ProfilePage() {
       </div>
 
       {user?.id === p.id && (
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link to="/statistics" className={buttonClass('primary')}>
+        <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5">
+          <Link to="/statistics" className={`${buttonClass('primary')} text-center justify-center`}>
             View full statistics
           </Link>
-          <Link to="/my-ratings" className={buttonClass('secondary')}>
+          <Link to="/my-ratings" className={`${buttonClass('secondary')} text-center justify-center`}>
             My Ratings
           </Link>
-          <Link to="/my-reviews" className={buttonClass('secondary')}>
+          <Link to="/my-reviews" className={`${buttonClass('secondary')} text-center justify-center`}>
             My Reviews
           </Link>
         </div>
