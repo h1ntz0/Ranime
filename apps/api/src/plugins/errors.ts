@@ -30,8 +30,9 @@ export function errorHandler(app: FastifyInstance): void {
     }
 
     request.log.error({ error }, 'Unhandled error')
+    console.error('SERVER UNHANDLED ERROR:', error)
     return reply.code(500).send({
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
+      error: { code: 'INTERNAL_ERROR', message: error?.message || 'Internal server error' },
     })
   })
 }

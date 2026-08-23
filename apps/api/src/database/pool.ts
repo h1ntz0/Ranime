@@ -1,5 +1,7 @@
 import pg from 'pg'
 
+let globalPool: pg.Pool | null = null
+
 export function createPool(connectionString: string): pg.Pool {
   const isCloud =
     connectionString.includes('sslmode=') ||
@@ -10,11 +12,20 @@ export function createPool(connectionString: string): pg.Pool {
   // Clean sslmode query params to allow pg.Pool's custom ssl object to take precedence
   const cleanUrl = connectionString.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(/[?&]$/, '')
 
-  return new pg.Pool({
+  if (globalPool) {
+    return globalPool
+  }
+
+  globalPool = new pg.Pool({
     connectionString: cleanUrl,
-    max: 10,
+    max: isCloud ? 2 : 10,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
     ...(isCloud ? { ssl: { rejectUnauthorized: false } } : {}),
   })
+
+  return globalPool
 }
+
 
 
