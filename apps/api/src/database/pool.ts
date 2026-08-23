@@ -2,7 +2,7 @@ import pg from 'pg'
 
 let globalPool: pg.Pool | null = null
 
-export function createPool(connectionString: string): pg.Pool {
+export function createPool(connectionString: string, opts: { reuse?: boolean } = {}): pg.Pool {
   const isCloud =
     connectionString.includes('sslmode=') ||
     connectionString.includes('supabase') ||
@@ -12,11 +12,13 @@ export function createPool(connectionString: string): pg.Pool {
   // Clean sslmode query params to allow pg.Pool's custom ssl object to take precedence
   const cleanUrl = connectionString.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(/[?&]$/, '')
 
-  if (globalPool) {
+  const shouldReuse = opts.reuse ?? process.env.NODE_ENV === 'production'
+
+  if (shouldReuse && globalPool) {
     return globalPool
   }
 
-  globalPool = new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: cleanUrl,
     max: isCloud ? 2 : 10,
     idleTimeoutMillis: 10000,
@@ -24,7 +26,11 @@ export function createPool(connectionString: string): pg.Pool {
     ...(isCloud ? { ssl: { rejectUnauthorized: false } } : {}),
   })
 
-  return globalPool
+  if (shouldReuse) {
+    globalPool = pool
+  }
+
+  return pool
 }
 
 
