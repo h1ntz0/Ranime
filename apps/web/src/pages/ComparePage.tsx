@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchAnimeList, fetchCompareAnime } from '../lib/api'
@@ -20,18 +20,30 @@ export default function ComparePage() {
     : []
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [searchingSlot, setSearchingSlot] = useState<number | null>(null)
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const compareQuery = useQuery({
     queryKey: ['anime', 'compare', selectedIds.join(',')],
     queryFn: ({ signal }) => fetchCompareAnime(selectedIds, signal),
     enabled: selectedIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
   })
 
   const searchResults = useQuery({
-    queryKey: ['search', 'compare', searchQuery],
-    queryFn: ({ signal }) => fetchAnimeList({ q: searchQuery, limit: 6 }, signal),
-    enabled: searchQuery.trim().length > 1,
+    queryKey: ['search', 'compare', debouncedSearch],
+    queryFn: ({ signal }) => fetchAnimeList({ q: debouncedSearch, limit: 6 }, signal),
+    enabled: debouncedSearch.trim().length > 1,
+    staleTime: 60 * 1000,
   })
 
   function addAnime(id: number) {

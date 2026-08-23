@@ -288,6 +288,45 @@ export class AnimeService {
     }
   }
 
+  async compare(externalIds: number[]): Promise<(AnimeCardView & { communityRating: { average: number | null; count: number } })[]> {
+    if (externalIds.length === 0) return []
+
+    // 1. Fetch missing anime from upstream if not found locally
+    await Promise.all(
+      externalIds.map(async (id) => {
+        const local = await this.findLocalAnime(id)
+        if (!local) {
+          try {
+            const detail = await this.fetchDetail(id)
+            if (detail) await this.persistDetail(detail)
+          } catch {
+            // best-effort
+          }
+        }
+      }),
+    )
+
+    // 2. Load local anime rows in order
+    const rows = await this.db.select().from(anime).where(inArray(anime.externalId, externalIds))
+    const decorated = await this.decorateWithRelations(rows)
+    const decoratedMap = new Map(decorated.map((a) => [a.id, a]))
+
+    // 3. Attach community rating for each
+    const results = await Promise.all(
+      externalIds.map(async (id) => {
+        const item = decoratedMap.get(id)
+        if (!item) return null
+        const cr = await this.communityRating(id)
+        return {
+          ...item,
+          communityRating: cr,
+        }
+      }),
+    )
+
+    return results.filter(Boolean) as (AnimeCardView & { communityRating: { average: number | null; count: number } })[]
+  }
+
   async characters(
     externalId: number,
     page = 1,

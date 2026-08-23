@@ -74,8 +74,8 @@ export async function animeRoutes(app: FastifyInstance): Promise<void> {
     if (ids.length === 0) {
       return sendData(reply, [])
     }
-    const list = await Promise.all(ids.map((id) => app.animeService.detail(id).catch(() => null)))
-    return sendData(reply, list.filter(Boolean))
+    const list = await app.animeService.compare(ids)
+    return sendData(reply, list)
   })
 
   app.get('/anime/roulette', async (request, reply) => {
