@@ -5,7 +5,14 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { AppError } from '../lib/errors.js'
 import { slugify } from '../lib/slug.js'
 import { AniListClient, AniListError } from '../integrations/anilist/client.js'
-import { MEDIA_BASIC_DETAIL_QUERY, MEDIA_DETAIL_QUERY, MEDIA_PAGE_QUERY } from '../integrations/anilist/queries.js'
+import {
+  MEDIA_BASIC_DETAIL_QUERY,
+  MEDIA_CHARACTERS_QUERY,
+  MEDIA_DETAIL_QUERY,
+  MEDIA_PAGE_QUERY,
+  MEDIA_RELATIONS_QUERY,
+  MEDIA_STAFF_QUERY,
+} from '../integrations/anilist/queries.js'
 import {
   mediaDetailSchema,
   mediaPageSchema,
@@ -132,6 +139,8 @@ export class AnimeService {
     list: new Map<string, { at: number; value: PagedResult<AnimeCardView> }>(),
     detail: new Map<string, { at: number; value: AniListMediaDetail }>(),
     recs: new Map<string, { at: number; value: PagedResult<AnimeCardView> }>(),
+    chars: new Map<string, { at: number; value: any }>(),
+    staff: new Map<string, { at: number; value: any }>(),
   }
 
   constructor(private options: AnimeServiceOptions) {
@@ -390,36 +399,51 @@ export class AnimeService {
     page = 1,
     perPage = 25,
   ): Promise<PagedResult<{ id: number; name: string; nameNative: string | null; image: string | null; role: string; voiceActor: { name: string; language: string } | null }>> {
-    const local = await this.findLocalAnime(externalId)
-    if (!local) {
-      try {
-        const detail = await this.fetchDetail(externalId)
-        if (detail) {
-          if (process.env.NODE_ENV === 'test') {
-            await this.persistDetail(detail)
-          } else {
-            void this.persistDetail(detail).catch(() => {})
-          }
-        }
-      } catch {}
+    const key = `chars:${externalId}:${page}:${perPage}`
+    const cached = this.caches.chars.get(key)
+    if (cached && Date.now() - cached.at < this.ttl.detail) {
+      return cached.value
     }
-    const count = await this.characterCount(externalId)
-    let hasMore = page * perPage > count
-    if (hasMore) {
-      try {
-        const detail = await this.fetchDetail(externalId, page, perPage)
-        if (detail) {
-          if (process.env.NODE_ENV === 'test') {
-            await this.persistDetail(detail)
-          } else {
-            void this.persistDetail(detail).catch(() => {})
+
+    try {
+      const data = (await this.options.client.query(MEDIA_CHARACTERS_QUERY, {
+        id: externalId,
+        page,
+        perPage,
+      })) as any
+
+      const charData = data?.Media?.characters
+      if (charData?.edges) {
+        const items = charData.edges.map((edge: any) => {
+          const node = edge.node || {}
+          const va = edge.voiceActors?.[0]
+          return {
+            id: node.id,
+            name: node.name?.full ?? 'Unknown',
+            nameNative: node.name?.native ?? null,
+            image: node.image?.large ?? null,
+            role: edge.role ?? 'SUPPORTING',
+            voiceActor: va ? { name: va.name?.full ?? 'Unknown', language: 'Japanese' } : null,
           }
-          hasMore = page * perPage > (await this.characterCount(externalId))
+        })
+
+        const total = charData.pageInfo?.total ?? items.length
+        const result: PagedResult<{ id: number; name: string; nameNative: string | null; image: string | null; role: string; voiceActor: { name: string; language: string } | null }> = {
+          items,
+          total,
+          page,
+          perPage,
+          hasNextPage: charData.pageInfo?.hasNextPage ?? false,
         }
-      } catch {
-        // serve what we have locally
+
+        this.caches.chars.set(key, { at: Date.now(), value: result })
+        return result
       }
+    } catch {
+      // Fallback to local DB if upstream unavailable
     }
+
+    const local = await this.findLocalAnime(externalId)
     const freshCount = await this.characterCount(externalId)
     const rows = await this.db
       .select({
@@ -458,19 +482,40 @@ export class AnimeService {
   }
 
   async staff(externalId: number): Promise<{ id: number; name: string; nameNative: string | null; image: string | null; role: string }[]> {
-    const local = await this.findLocalAnime(externalId)
-    if (!local) {
-      try {
-        const detail = await this.fetchDetail(externalId)
-        if (detail) {
-          if (process.env.NODE_ENV === 'test') {
-            await this.persistDetail(detail)
-          } else {
-            void this.persistDetail(detail).catch(() => {})
-          }
-        }
-      } catch {}
+    const key = `staff:${externalId}`
+    const cached = this.caches.staff.get(key)
+    if (cached && Date.now() - cached.at < this.ttl.detail) {
+      return cached.value
     }
+
+    try {
+      const data = (await this.options.client.query(MEDIA_STAFF_QUERY, {
+        id: externalId,
+        page: 1,
+        perPage: 25,
+      })) as any
+
+      const staffData = data?.Media?.staff
+      if (staffData?.edges) {
+        const items = staffData.edges.map((edge: any) => {
+          const node = edge.node || {}
+          return {
+            id: node.id,
+            name: node.name?.full ?? 'Unknown',
+            nameNative: node.name?.native ?? null,
+            image: node.image?.large ?? null,
+            role: edge.role ?? 'Staff',
+          }
+        })
+
+        this.caches.staff.set(key, { at: Date.now(), value: items })
+        return items
+      }
+    } catch {
+      // Fallback to local DB
+    }
+
+    const local = await this.findLocalAnime(externalId)
     const rows = await this.db
       .select({
         id: staff.externalId,
@@ -489,19 +534,57 @@ export class AnimeService {
   async relations(
     externalId: number,
   ): Promise<{ relationType: string; anime: AnimeCardView }[]> {
-    const local = await this.findLocalAnime(externalId)
-    if (!local) {
-      try {
-        const detail = await this.fetchDetail(externalId)
-        if (detail) {
-          if (process.env.NODE_ENV === 'test') {
-            await this.persistDetail(detail)
-          } else {
-            void this.persistDetail(detail).catch(() => {})
-          }
-        }
-      } catch {}
+    const key = `relations:${externalId}`
+    const cached = this.caches.list.get(key)
+    if (cached && Date.now() - cached.at < this.ttl.detail) {
+      return cached.value as unknown as { relationType: string; anime: AnimeCardView }[]
     }
+
+    try {
+      const data = (await this.options.client.query(MEDIA_RELATIONS_QUERY, { id: externalId })) as any
+      const edges = data?.Media?.relations?.edges
+      if (edges) {
+        const items = edges.map((edge: any) => {
+          const node = edge.node || {}
+          return {
+            relationType: edge.relationType ?? 'OTHER',
+            anime: {
+              id: node.id,
+              title: {
+                romaji: node.title?.romaji ?? '',
+                english: node.title?.english ?? null,
+                native: node.title?.native ?? null,
+              },
+              coverImage: node.coverImage?.large ?? null,
+              bannerImage: null,
+              format: node.format ?? null,
+              status: node.status ?? null,
+              episodes: node.episodes ?? null,
+              duration: null,
+              season: null,
+              seasonYear: null,
+              averageScore: node.averageScore ?? null,
+              popularity: null,
+              trending: null,
+              startDate: null,
+              endDate: null,
+              source: null,
+              country: null,
+              genres: [],
+              studios: [],
+              nextAiring: null,
+            },
+          }
+        })
+
+        this.caches.list.set(key, { at: Date.now(), value: items as any })
+        return items
+      }
+    } catch {
+      // Fallback to local DB
+    }
+
+    const local = await this.findLocalAnime(externalId)
     const rows = await this.db
       .select({
         relationType: animeRelations.relationType,
