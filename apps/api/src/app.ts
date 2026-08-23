@@ -110,7 +110,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
     credentials: true,
   })
   app.register(cookie)
-  app.register(multipart)
+  app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10 MB limit to support high-res mobile phone camera photos
+    },
+  })
   app.register(staticFiles, {
     root: UPLOAD_ROOT,
     prefix: '/uploads/',

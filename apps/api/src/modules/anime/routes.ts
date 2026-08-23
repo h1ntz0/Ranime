@@ -107,7 +107,7 @@ export async function animeRoutes(app: FastifyInstance): Promise<void> {
     if (!randomAnime) {
       return sendData(reply, null)
     }
-    const detail = await app.animeService.detail(randomAnime.id).catch(() => null)
-    return sendData(reply, detail ?? randomAnime)
+    // Return randomAnime directly from fast list cache (0.1s response instead of fetching all characters/staff)
+    return sendData(reply, randomAnime)
   })
 }

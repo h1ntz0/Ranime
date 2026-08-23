@@ -128,8 +128,8 @@ export async function usersRoutes(
 
       const buffer = await part.toBuffer()
       if (buffer.length === 0) throw new AppError(422, 'VALIDATION_ERROR', 'Avatar file is empty')
-      if (buffer.length > 1.5 * 1024 * 1024) {
-        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 1.5 MB')
+      if (buffer.length > 4.5 * 1024 * 1024) {
+        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 4.5 MB')
       }
 
       // Convert to clean base64 data URI for zero-dependency resilient storage across serverless / cloud
