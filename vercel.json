@@ -1,18 +1,22 @@
 {
+  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "apps/web/dist",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "/api"
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
     },
     {
-      "source": "/uploads/:path*",
-      "destination": "/api"
+      "src": "/uploads/(.*)",
+      "dest": "/api/index.ts"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
