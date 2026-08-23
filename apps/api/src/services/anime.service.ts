@@ -291,14 +291,18 @@ export class AnimeService {
   async compare(externalIds: number[]): Promise<(AnimeCardView & { communityRating: { average: number | null; count: number } })[]> {
     if (externalIds.length === 0) return []
 
-    // 1. Fetch missing anime from upstream if not found locally
+    // 1. Fetch missing anime from upstream if not found locally with max 3s timeout per missing
     await Promise.all(
       externalIds.map(async (id) => {
         const local = await this.findLocalAnime(id)
         if (!local) {
           try {
-            const detail = await this.fetchDetail(id)
-            if (detail) await this.persistDetail(detail)
+            const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+            const fetchPromise = this.fetchDetail(id).then(async (detail) => {
+              if (detail) await this.persistDetail(detail)
+              return detail
+            })
+            await Promise.race([fetchPromise, timeout])
           } catch {
             // best-effort
           }
