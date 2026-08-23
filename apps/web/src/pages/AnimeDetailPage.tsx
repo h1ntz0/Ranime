@@ -362,7 +362,7 @@ export default function AnimeDetailPage() {
                 to={`/compare?ids=${anime.id}`}
                 className="rounded-full border border-line bg-surface-raised/40 px-3 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-accent hover:text-accent-strong"
               >
-                ⚖️ Compare with other anime
+                Compare with other anime
               </Link>
               <button
                 type="button"

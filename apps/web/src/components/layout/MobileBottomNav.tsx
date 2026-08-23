@@ -43,7 +43,14 @@ function UserIcon({ active }: { active: boolean }) {
 
 function DiceIcon({ active }: { active: boolean }) {
   return (
-    <span className={cn('text-lg leading-none', active ? 'opacity-100' : 'opacity-70')}>🎲</span>
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth={active ? 2 : 1.5} />
+      <circle cx="8.5" cy="8.5" r="1.25" fill="currentColor" />
+      <circle cx="15.5" cy="8.5" r="1.25" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" />
+      <circle cx="8.5" cy="15.5" r="1.25" fill="currentColor" />
+      <circle cx="15.5" cy="15.5" r="1.25" fill="currentColor" />
+    </svg>
   )
 }
 

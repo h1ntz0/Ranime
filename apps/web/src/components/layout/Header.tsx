@@ -16,9 +16,9 @@ const MAIN_NAV = [
 ]
 
 const TOOLS_NAV = [
-  { to: '/roulette', label: 'Roulette', icon: '🎲', desc: 'Random anime discovery' },
-  { to: '/compare', label: 'Compare', icon: '⚖️', desc: 'Side-by-side anime comparison' },
-  { to: '/tier-list', label: 'Tier List', icon: '🏆', desc: 'Custom ranking board' },
+  { to: '/roulette', label: 'Roulette', desc: 'Random anime discovery' },
+  { to: '/compare', label: 'Compare', desc: 'Side-by-side anime comparison' },
+  { to: '/tier-list', label: 'Tier List', desc: 'Custom ranking board' },
 ]
 
 function linkClass({ isActive }: { isActive: boolean }): string {
@@ -81,9 +81,9 @@ export function Header() {
             aria-label="Ranime home"
           >
             <img
-              src="/favicon.svg"
-              alt="Ranime mascot"
-              className="h-7 w-7 rounded-md transition-transform duration-200 group-hover:scale-110 shadow-xs"
+              src="/logo.jpg"
+              alt="Ranime logo"
+              className="h-7 w-7 rounded-md object-cover transition-transform duration-200 group-hover:scale-105 border border-line"
             />
             <span className="bg-gradient-to-r from-ink via-ink to-ink-2 bg-clip-text">Ranime</span>
           </Link>
@@ -143,14 +143,13 @@ export function Header() {
                     role="menuitem"
                     onClick={() => setToolsOpen(false)}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-sm px-3 py-2 text-sm transition-colors hover:bg-surface',
+                      'flex items-center rounded-sm px-3 py-2 text-sm transition-colors hover:bg-surface',
                       location.pathname.startsWith(tool.to) ? 'bg-surface font-medium text-accent-strong' : 'text-ink-2 hover:text-ink',
                     )}
                   >
-                    <span className="text-base leading-none">{tool.icon}</span>
                     <div className="flex flex-col">
                       <span className="font-medium leading-none text-ink">{tool.label}</span>
-                      <span className="mt-0.5 text-[11px] text-ink-3">{tool.desc}</span>
+                      <span className="mt-1 text-[11px] text-ink-3">{tool.desc}</span>
                     </div>
                   </Link>
                 ))}
@@ -352,30 +351,30 @@ export function Header() {
                   <NavLink
                     to="/library"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
                   >
-                    <span>📚</span> Library
+                    Library
                   </NavLink>
                   <NavLink
                     to="/watchlist"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
                   >
-                    <span>⏱️</span> Watchlist
+                    Watchlist
                   </NavLink>
                   <NavLink
                     to="/my-ratings"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
                   >
-                    <span>⭐</span> My Ratings
+                    My Ratings
                   </NavLink>
                   <NavLink
                     to="/my-reviews"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
                   >
-                    <span>✍️</span> My Reviews
+                    My Reviews
                   </NavLink>
                 </div>
               </div>
@@ -428,8 +427,8 @@ export function Header() {
                     className="flex flex-col items-center justify-center rounded-md border border-line/60 bg-surface/40 p-2.5 text-center text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-all active:scale-[0.98]"
                     onClick={() => setOpen(false)}
                   >
-                    <span className="text-lg leading-none mb-1">{tool.icon}</span>
-                    <span className="text-[11px] truncate w-full">{tool.label}</span>
+                    <span className="text-xs font-semibold text-ink">{tool.label}</span>
+                    <span className="text-[10px] text-ink-3 truncate w-full mt-0.5">{tool.desc.split(' ')[0]}</span>
                   </NavLink>
                 ))}
               </div>

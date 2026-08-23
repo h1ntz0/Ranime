@@ -40,14 +40,14 @@ export function CommandPalette() {
   if (!open) return null
 
   const quickLinks = [
-    { label: 'Explore Catalog', path: '/explore', icon: '🧭' },
-    { label: 'Discovery Roulette', path: '/roulette', icon: '🎲' },
-    { label: 'Compare Anime', path: '/compare', icon: '⚖️' },
-    { label: 'Tier List Maker', path: '/tier-list', icon: '🏆' },
-    { label: 'Top Anime', path: '/top', icon: '⭐' },
-    { label: 'Current Season', path: '/season', icon: '🌸' },
-    { label: 'Airing Calendar', path: '/airing', icon: '📅' },
-    { label: 'Anime Genres', path: '/genres', icon: '🏷️' },
+    { label: 'Explore Catalog', path: '/explore' },
+    { label: 'Discovery Roulette', path: '/roulette' },
+    { label: 'Compare Anime', path: '/compare' },
+    { label: 'Tier List Maker', path: '/tier-list' },
+    { label: 'Top Anime', path: '/top' },
+    { label: 'Current Season', path: '/season' },
+    { label: 'Airing Calendar', path: '/airing' },
+    { label: 'Anime Genres', path: '/genres' },
   ]
 
   return (
@@ -125,10 +125,10 @@ export function CommandPalette() {
                     key={link.path}
                     type="button"
                     onClick={() => handleSelect(link.path)}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-ink-2 transition-colors hover:bg-surface hover:text-ink"
+                    className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm text-ink-2 transition-colors hover:bg-surface hover:text-ink"
                   >
-                    <span>{link.icon}</span>
                     <span>{link.label}</span>
+                    <span className="text-[11px] text-ink-4">↵</span>
                   </button>
                 ))}
               </div>

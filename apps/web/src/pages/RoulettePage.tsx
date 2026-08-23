@@ -110,7 +110,7 @@ export default function RoulettePage() {
           disabled={spinning || rouletteQuery.isFetching}
           className="h-12 px-8 text-base shadow-lg shadow-accent/20"
         >
-          {spinning || rouletteQuery.isFetching ? '🎲 Spinning...' : '🎲 Spin Roulette'}
+          {spinning || rouletteQuery.isFetching ? 'Spinning...' : 'Spin Roulette'}
         </Button>
       </div>
 
