@@ -53,6 +53,56 @@ query MediaBasicDetail($id: Int) {
   }
 }`
 
+export const MEDIA_CHARACTERS_QUERY = `
+query MediaCharacters($id: Int, $page: Int, $perPage: Int) {
+  Media(id: $id, type: ANIME, isAdult: false) {
+    id
+    characters(page: $page, perPage: $perPage, sort: ROLE) {
+      pageInfo { total perPage currentPage lastPage hasNextPage }
+      edges {
+        role
+        node { id name { full native } image { large } }
+        voiceActors(language: JAPANESE, sort: RELEVANCE) { id name { full native } image { large } }
+      }
+    }
+  }
+}`
+
+export const MEDIA_STAFF_QUERY = `
+query MediaStaff($id: Int, $page: Int, $perPage: Int) {
+  Media(id: $id, type: ANIME, isAdult: false) {
+    id
+    staff(page: $page, perPage: $perPage) {
+      pageInfo { total perPage currentPage lastPage hasNextPage }
+      edges {
+        role
+        node { id name { full native } image { large } }
+      }
+    }
+  }
+}`
+
+export const MEDIA_RELATIONS_QUERY = `
+query MediaRelations($id: Int) {
+  Media(id: $id, type: ANIME, isAdult: false) {
+    id
+    relations {
+      edges {
+        relationType
+        node {
+          id
+          title { romaji english native }
+          format
+          status
+          episodes
+          averageScore
+          coverImage { large }
+        }
+      }
+    }
+  }
+}`
+
 export const MEDIA_DETAIL_QUERY = `
 query MediaDetail($id: Int, $charPage: Int, $charPerPage: Int, $staffPerPage: Int, $recPage: Int, $recPerPage: Int) {
   Media(id: $id, type: ANIME, isAdult: false) {
