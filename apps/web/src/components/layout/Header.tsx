@@ -1,26 +1,29 @@
-import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/cn'
 import { Poster } from '../Poster'
 import { Button } from '../ui/Button'
 import { SearchBar } from '../SearchBar'
 
-const NAV = [
+const MAIN_NAV = [
   { to: '/', label: 'Home' },
   { to: '/explore', label: 'Explore' },
-  { to: '/roulette', label: 'Roulette 🎲' },
-  { to: '/compare', label: 'Compare' },
-  { to: '/tier-list', label: 'Tier List' },
+  { to: '/airing', label: 'Airing' },
   { to: '/season', label: 'Season' },
   { to: '/top', label: 'Top' },
   { to: '/genres', label: 'Genres' },
-  { to: '/airing', label: 'Airing' },
+]
+
+const TOOLS_NAV = [
+  { to: '/roulette', label: 'Roulette', icon: '🎲', desc: 'Random anime discovery' },
+  { to: '/compare', label: 'Compare', icon: '⚖️', desc: 'Side-by-side anime comparison' },
+  { to: '/tier-list', label: 'Tier List', icon: '🏆', desc: 'Custom ranking board' },
 ]
 
 function linkClass({ isActive }: { isActive: boolean }): string {
   return cn(
-    'relative rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+    'relative whitespace-nowrap rounded-sm px-2.5 py-1.5 text-sm transition-colors',
     isActive
       ? 'bg-surface-raised/60 font-medium text-ink after:absolute after:inset-x-2.5 after:-bottom-[3px] after:h-[2px] after:rounded-full after:bg-accent'
       : 'text-ink-2 hover:bg-surface-raised/50 hover:text-ink',
@@ -31,21 +34,52 @@ export function Header() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const toolsRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
+        setToolsOpen(false)
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setOpen(false)
+    setToolsOpen(false)
+    setMenuOpen(false)
+  }, [location.pathname])
 
   async function handleLogout() {
     await logout()
     navigate('/')
   }
 
-  const links = user ? [...NAV, { to: '/library', label: 'Library' }] : NAV
+  const isToolsActive = TOOLS_NAV.some((t) => location.pathname.startsWith(t.to))
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent-strong" aria-label="Ranime home">
+    <header className="sticky top-0 z-40 border-b border-line bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
+        {/* Brand */}
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/"
+            className="text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent-strong"
+            aria-label="Ranime home"
+          >
             Ranime
           </Link>
           <span className="hidden rounded-sm border border-line px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-3 sm:inline">
@@ -53,22 +87,88 @@ export function Header() {
           </span>
         </div>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
-          {links.map((item) => (
-            <NavLink key={item.to} to={item.to} className={linkClass} end={item.to === '/' || item.to === '/explore'}>
+          {MAIN_NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={linkClass}
+              end={item.to === '/' || item.to === '/explore'}
+            >
               {item.label}
             </NavLink>
           ))}
+
+          {/* Tools Dropdown */}
+          <div ref={toolsRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setToolsOpen((v) => !v)}
+              className={cn(
+                'relative flex items-center gap-1 whitespace-nowrap rounded-sm px-2.5 py-1.5 text-sm transition-colors',
+                isToolsActive || toolsOpen
+                  ? 'bg-surface-raised/60 font-medium text-ink'
+                  : 'text-ink-2 hover:bg-surface-raised/50 hover:text-ink',
+              )}
+              aria-expanded={toolsOpen}
+              aria-haspopup="menu"
+            >
+              <span>Tools</span>
+              <svg
+                className={cn('h-3.5 w-3.5 transition-transform duration-200', toolsOpen && 'rotate-180')}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+
+            {toolsOpen && (
+              <div
+                role="menu"
+                className="absolute left-0 top-full mt-2 w-56 rounded-md border border-line bg-surface-raised p-1 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+              >
+                {TOOLS_NAV.map((tool) => (
+                  <Link
+                    key={tool.to}
+                    to={tool.to}
+                    role="menuitem"
+                    onClick={() => setToolsOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-sm px-3 py-2 text-sm transition-colors hover:bg-surface',
+                      location.pathname.startsWith(tool.to) ? 'bg-surface font-medium text-accent-strong' : 'text-ink-2 hover:text-ink',
+                    )}
+                  >
+                    <span className="text-base leading-none">{tool.icon}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium leading-none text-ink">{tool.label}</span>
+                      <span className="mt-0.5 text-[11px] text-ink-3">{tool.desc}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {user && (
+            <NavLink to="/library" className={linkClass}>
+              Library
+            </NavLink>
+          )}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        {/* Search & Actions */}
+        <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
           <SearchBar />
           {user ? (
             <>
               <NavLink to="/statistics" className={linkClass}>
                 Stats
               </NavLink>
-              <div className="relative ml-1">
+              <div ref={userMenuRef} className="relative ml-1">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((v) => !v)}
@@ -82,7 +182,7 @@ export function Header() {
                 {menuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full mt-2 w-48 rounded-sm border border-line bg-surface-raised py-1 shadow-xl"
+                    className="absolute right-0 top-full mt-2 w-48 rounded-md border border-line bg-surface-raised py-1 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
                   >
                     <Link
                       to={`/profile/${user.username}`}
@@ -124,6 +224,7 @@ export function Header() {
                     >
                       Settings
                     </Link>
+                    <div className="my-1 border-t border-line" />
                     <div role="menuitem">
                       <Button
                         variant="danger"
@@ -141,17 +242,24 @@ export function Header() {
               </div>
             </>
           ) : (
-            <>
-              <Link to="/login" className="rounded-sm px-3 py-1.5 text-sm text-ink-2 transition-colors hover:text-ink">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="whitespace-nowrap rounded-sm px-3 py-1.5 text-sm text-ink-2 transition-colors hover:text-ink"
+              >
                 Login
               </Link>
-              <Link to="/register" className="rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-white">
+              <Link
+                to="/register"
+                className="whitespace-nowrap rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-white"
+              >
                 Register
               </Link>
-            </>
+            </div>
           )}
         </div>
 
+        {/* Mobile Buttons */}
         <div className="flex items-center gap-1.5 lg:hidden">
           {!searchOpen && (
             <button
@@ -174,72 +282,122 @@ export function Header() {
             aria-expanded={open}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              {open ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              )}
             </svg>
           </button>
         </div>
       </div>
 
+      {/* Mobile Search Dropdown */}
       {searchOpen && (
         <div className="border-t border-line px-4 py-3 lg:hidden">
           <SearchBar autoFocus onClose={() => setSearchOpen(false)} className="[&_input]:h-11" />
         </div>
       )}
 
+      {/* Mobile Full Menu Drawer */}
       {open && (
-        <nav className="border-t border-line px-4 py-3 lg:hidden" aria-label="Mobile navigation">
-          <div className="flex flex-col gap-0.5">
-            {links.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={linkClass}
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            {user ? (
-              <>
-                <NavLink to="/watchlist" className={linkClass} onClick={() => setOpen(false)}>
-                  Watchlist
-                </NavLink>
-                <NavLink to="/statistics" className={linkClass} onClick={() => setOpen(false)}>
-                  Statistics
-                </NavLink>
-                <NavLink to="/my-ratings" className={linkClass} onClick={() => setOpen(false)}>
-                  My Ratings
-                </NavLink>
-                <NavLink to="/my-reviews" className={linkClass} onClick={() => setOpen(false)}>
-                  My Reviews
-                </NavLink>
-                <NavLink to={`/profile/${user.username}`} className={linkClass} onClick={() => setOpen(false)}>
-                  Profile
-                </NavLink>
-                <NavLink to="/settings" className={linkClass} onClick={() => setOpen(false)}>
-                  Settings
-                </NavLink>
-                <Button
-                  variant="danger"
-                  className="w-full justify-start rounded-sm px-2.5 py-1.5"
-                  onClick={() => {
-                    setOpen(false)
-                    void handleLogout()
-                  }}
-                >
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <NavLink to="/login" className={linkClass} onClick={() => setOpen(false)}>
-                  Login
-                </NavLink>
-                <NavLink to="/register" className={linkClass} onClick={() => setOpen(false)}>
-                  Register
-                </NavLink>
-              </>
-            )}
+        <nav
+          className="max-h-[calc(100vh-3.5rem)] overflow-y-auto border-t border-line bg-background/98 px-4 py-4 lg:hidden"
+          aria-label="Mobile navigation"
+        >
+          <div className="flex flex-col gap-4">
+            {/* Discover Section */}
+            <div>
+              <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Discover</p>
+              <div className="mt-1 flex flex-col gap-0.5">
+                {MAIN_NAV.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={linkClass}
+                    onClick={() => setOpen(false)}
+                    end={item.to === '/' || item.to === '/explore'}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+
+            {/* Tools Section */}
+            <div>
+              <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-4">Tools & Games</p>
+              <div className="mt-1 flex flex-col gap-0.5">
+                {TOOLS_NAV.map((tool) => (
+                  <NavLink
+                    key={tool.to}
+                    to={tool.to}
+                    className={linkClass}
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="mr-2">{tool.icon}</span>
+                    {tool.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+
+            {/* User / Auth Section */}
+            <div className="border-t border-line pt-3">
+              {user ? (
+                <div>
+                  <div className="mb-2 flex items-center gap-2.5 px-2.5">
+                    <Poster src={user.avatarUrl} alt={user.username} className="h-8 w-8 rounded-full" />
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{user.username}</p>
+                      <p className="text-xs text-ink-3">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <NavLink to="/library" className={linkClass} onClick={() => setOpen(false)}>
+                      Library
+                    </NavLink>
+                    <NavLink to="/watchlist" className={linkClass} onClick={() => setOpen(false)}>
+                      Watchlist
+                    </NavLink>
+                    <NavLink to="/statistics" className={linkClass} onClick={() => setOpen(false)}>
+                      Statistics
+                    </NavLink>
+                    <NavLink to="/my-ratings" className={linkClass} onClick={() => setOpen(false)}>
+                      My Ratings
+                    </NavLink>
+                    <NavLink to="/my-reviews" className={linkClass} onClick={() => setOpen(false)}>
+                      My Reviews
+                    </NavLink>
+                    <NavLink to={`/profile/${user.username}`} className={linkClass} onClick={() => setOpen(false)}>
+                      Profile
+                    </NavLink>
+                    <NavLink to="/settings" className={linkClass} onClick={() => setOpen(false)}>
+                      Settings
+                    </NavLink>
+                    <Button
+                      variant="danger"
+                      className="mt-2 w-full justify-start rounded-sm px-2.5 py-2"
+                      onClick={() => {
+                        setOpen(false)
+                        void handleLogout()
+                      }}
+                    >
+                      Logout
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 pt-1">
+                  <NavLink to="/login" className={linkClass} onClick={() => setOpen(false)}>
+                    Login
+                  </NavLink>
+                  <NavLink to="/register" className={linkClass} onClick={() => setOpen(false)}>
+                    Register
+                  </NavLink>
+                </div>
+              )}
+            </div>
           </div>
         </nav>
       )}
