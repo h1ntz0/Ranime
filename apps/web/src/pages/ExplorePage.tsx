@@ -290,12 +290,12 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <div className="mt-8 relative">
+      <div className="mt-8 relative min-h-[360px]">
         {data.isFetching && !data.isPending && (
-          <div className="absolute inset-0 z-20 flex items-start justify-center pt-24 bg-background/50 backdrop-blur-2xs transition-opacity animate-in fade-in">
-            <div className="flex items-center gap-3 rounded-full border border-line bg-surface-raised px-4 py-2 shadow-xl">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-              <span className="text-xs font-semibold text-ink">Filtering anime...</span>
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/40 backdrop-blur-[2px] transition-all duration-200 animate-in fade-in rounded-xl">
+            <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface/95 px-4 py-2 shadow-lg backdrop-blur-md">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <span className="text-xs font-medium tracking-wide text-ink">Updating results...</span>
             </div>
           </div>
         )}
