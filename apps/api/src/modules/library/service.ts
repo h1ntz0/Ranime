@@ -39,12 +39,12 @@ export interface LibraryListParams {
 }
 
 export class LibraryService {
-  private db: NodePgDatabase<Record<string, unknown>>
+  private db: NodePgDatabase<any>
 
   constructor(
     private options: {
       pool: Pool
-      db?: NodePgDatabase<Record<string, unknown>>
+      db?: NodePgDatabase<any>
       onActivity?: (userId: string, type: 'LIBRARY_ADDED' | 'STATUS_CHANGED' | 'COMPLETED', animeId: number, payload?: Record<string, unknown>) => void
     },
   ) {
@@ -199,7 +199,7 @@ export class LibraryService {
         .innerJoin(genres, eq(genres.id, animeGenres.genreId))
         .where(inArray(animeGenres.animeId, animeIds)),
     ])
-    const animeById = new Map(animeRows.map((a) => [a.id, a]))
+    const animeById = new Map<number, any>(animeRows.map((a: any) => [a.id, a]))
     const genresByAnime = new Map<number, string[]>()
     for (const g of genreRows) {
       const list = genresByAnime.get(g.animeId) ?? []

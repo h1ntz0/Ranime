@@ -24,12 +24,12 @@ export interface ReviewView {
 }
 
 export class ReviewService {
-  private db: NodePgDatabase<Record<string, unknown>>
+  private db: NodePgDatabase<any>
 
   constructor(
     private options: {
       pool: Pool
-      db?: NodePgDatabase<Record<string, unknown>>
+      db?: NodePgDatabase<any>
       onActivity?: (userId: string, type: 'REVIEWED', animeId: number, payload?: Record<string, unknown>, reviewId?: string) => void
     },
   ) {
@@ -148,7 +148,7 @@ export class ReviewService {
           .from(users)
           .where(inArray(users.id, userIds))
       : []
-    const userById = new Map(userRows.map((u) => [u.id, u]))
+    const userById = new Map<string, any>(userRows.map((u: any) => [u.id, u]))
 
     return {
       items: rows.map((r) => ({
@@ -294,7 +294,7 @@ export class ReviewService {
           .from(users)
           .where(inArray(users.id, userIds))
       : []
-    const userById = new Map(userRows.map((u) => [u.id, u]))
+    const userById = new Map<string, any>(userRows.map((u: any) => [u.id, u]))
 
     const animeIds = [...new Set(rows.map((r) => r.animeId))]
     const animeRows = animeIds.length
@@ -310,7 +310,7 @@ export class ReviewService {
           .from(anime)
           .where(inArray(anime.id, animeIds))
       : []
-    const animeById = new Map(animeRows.map((a) => [a.id, a]))
+    const animeById = new Map<number, any>(animeRows.map((a: any) => [a.id, a]))
 
     return {
       items: rows.map((r) => {

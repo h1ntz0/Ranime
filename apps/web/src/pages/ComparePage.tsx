@@ -6,7 +6,6 @@ import { Poster } from '../components/Poster'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { displayTitle, formatScore, formatStatus } from '../lib/format'
-import { SearchBar } from '../components/SearchBar'
 import type { AnimeCard } from '../lib/types'
 
 export default function ComparePage() {
