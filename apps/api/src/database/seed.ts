@@ -18,7 +18,6 @@ export const SEED_GENRES = [
   'Drama',
   'Ecchi',
   'Fantasy',
-  'Hentai',
   'Horror',
   'Mahou Shoujo',
   'Mecha',

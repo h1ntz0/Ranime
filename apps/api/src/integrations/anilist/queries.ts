@@ -25,7 +25,8 @@ query MediaPage(
     media(
       search: $search, genre: $genre, season: $season,
       seasonYear: $seasonYear, format: $format, status: $status,
-      averageScore_greater: $minScore, sort: $sort, type: ANIME
+      averageScore_greater: $minScore, sort: $sort, type: ANIME,
+      isAdult: false, genre_not_in: ["Hentai"]
     ) {
       ${MEDIA_PAGE_FIELDS}
     }
@@ -34,7 +35,7 @@ query MediaPage(
 
 export const MEDIA_DETAIL_QUERY = `
 query MediaDetail($id: Int, $charPage: Int, $charPerPage: Int, $staffPerPage: Int, $recPage: Int, $recPerPage: Int) {
-  Media(id: $id, type: ANIME) {
+  Media(id: $id, type: ANIME, isAdult: false) {
     id siteUrl
     title { romaji english native }
     description(asHtml: false)
