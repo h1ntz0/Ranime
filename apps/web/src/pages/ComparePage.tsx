@@ -5,6 +5,7 @@ import { fetchAnimeList, fetchCompareAnime, fetchTop } from '../lib/api'
 import { Poster } from '../components/Poster'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { ErrorState } from '../components/States'
 import { displayTitle, formatScore, formatStatus } from '../lib/format'
 import type { AnimeCard } from '../lib/types'
 
@@ -43,6 +44,7 @@ export default function ComparePage() {
     enabled: selectedIds.length > 0,
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
+    retry: 1,
   })
 
   // Quick top anime pool for instant add without typing
@@ -50,6 +52,7 @@ export default function ComparePage() {
     queryKey: ['top', 'compare-pool'],
     queryFn: ({ signal }) => fetchTop('top-rated', 1, signal),
     staleTime: 10 * 60 * 1000,
+    retry: 1,
   })
 
   const searchResults = useQuery({
@@ -57,6 +60,7 @@ export default function ComparePage() {
     queryFn: ({ signal }) => fetchAnimeList({ q: debouncedSearch, limit: 6 }, signal),
     enabled: debouncedSearch.trim().length > 1,
     staleTime: 60 * 1000,
+    retry: 1,
   })
 
   function addAnime(id: number) {
@@ -239,7 +243,14 @@ export default function ComparePage() {
         })}
       </div>
 
-      {compareQuery.isPending && selectedIds.length > 0 && (
+      {compareQuery.isError && selectedIds.length > 0 && (
+        <ErrorState
+          message="Failed to load comparison data. Please try again."
+          retry={() => compareQuery.refetch()}
+        />
+      )}
+
+      {compareQuery.isPending && items.length === 0 && selectedIds.length > 0 && (
         <div className="flex min-h-[150px] items-center justify-center gap-2 text-sm text-ink-3">
           <Spinner className="h-5 w-5" /> Comparing selected anime...
         </div>
