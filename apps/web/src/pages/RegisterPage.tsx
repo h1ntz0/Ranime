@@ -32,6 +32,14 @@ export default function RegisterPage() {
       setError('Password must be at least 8 characters.')
       return
     }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      setError('Password must include uppercase, lowercase, number, and symbol.')
+      return
+    }
+    if (/password/i.test(password)) {
+      setError('Password must not contain "password".')
+      return
+    }
     if (password !== confirm) {
       setError('Passwords do not match.')
       return
@@ -107,7 +115,7 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
-        <Field label="Password" htmlFor="reg-password" hint="At least 8 characters.">
+        <Field label="Password" htmlFor="reg-password" hint="Min 8 chars, upper + lower + number + symbol.">
           <Input
             id="reg-password"
             type="password"

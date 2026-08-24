@@ -6,10 +6,18 @@ import { AppError } from '../../lib/errors.js'
 import { optionalAuth, setSessionCookie, clearSessionCookie, toPublicUser } from './helpers.js'
 import type { AuthService } from './service.js'
 
+const strongPassword = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(200)
+  .refine((v) => !/password/i.test(v), 'Password must not contain "password"')
+  .refine((v) => /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v), 'Password must include uppercase, lowercase, and a number')
+  .refine((v) => /[^A-Za-z0-9]/.test(v), 'Password must include at least one symbol')
+
 const registerSchema = z.object({
   username: z.string().trim().min(3, 'Username must be at least 3 characters').max(32),
   email: z.string().trim().toLowerCase().email('Valid email required'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(200),
+  password: strongPassword,
 })
 
 const loginSchema = z.object({

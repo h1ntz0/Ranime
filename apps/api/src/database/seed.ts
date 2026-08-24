@@ -7,7 +7,7 @@ import { genres, users } from './schema.js'
 export const DEMO_USER = {
   username: 'demo',
   email: 'demo@example.local',
-  password: 'password123',
+  password: 'REDACTED-PASSWORD',
 }
 
 /** Canonical AniList genre list used to seed the genre catalog. */
@@ -55,8 +55,8 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
       })
       .onConflictDoNothing({ target: users.email })
 
-    // Ensure dedicated admin account exists
-    const adminHash = await hash('password123')
+    // Ensure dedicated admin account exists — strong password
+    const adminHash = await hash('REDACTED-PASSWORD')
     await client
       .insert(users)
       .values({
@@ -66,9 +66,9 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
         role: 'ADMIN',
       })
       .onConflictDoNothing({ target: users.email })
-    // Promote if already exists but not admin or has no password (Google-only)
-    await client.execute(sql`UPDATE users SET role = 'ADMIN', updated_at = now() WHERE email = 'admin@example.local' AND role <> 'ADMIN'`)
-    await client.execute(sql`UPDATE users SET password_hash = ${adminHash}, updated_at = now() WHERE email = 'admin@example.local' AND password_hash IS NULL`)
+    // Rotate weak passwords to strong + ensure admin role (idempotent)
+    await client.execute(sql`UPDATE users SET password_hash = ${passwordHash}, updated_at = now() WHERE email = 'demo@example.local'`)
+    await client.execute(sql`UPDATE users SET password_hash = ${adminHash}, role = 'ADMIN', updated_at = now() WHERE email = 'admin@example.local'`)
 
     await client
       .insert(genres)

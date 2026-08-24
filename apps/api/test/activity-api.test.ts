@@ -87,7 +87,7 @@ describe('user activity feed', () => {
     expect(blocked.statusCode).toBe(401)
 
     const reg = await inject('POST', '/api/auth/register', {
-      body: { username: 'flowuser2', email: 'flowuser2@example.com', password: 'password123' },
+      body: { username: 'flowuser2', email: 'flowuser2@example.com', password: 'Str0ng!Pass123' },
     })
     token = cookie(reg)
     const added = await inject('POST', '/api/anime/910001/watchlist', {

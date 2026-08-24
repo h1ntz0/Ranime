@@ -112,7 +112,7 @@ export default function AdminPage() {
   const s = statsQ.data!
 
   return (
-    <div className="min-w-0 max-w-full overflow-x-hidden space-y-5 pb-20 sm:space-y-6 lg:pb-0">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-5 pb-24 sm:space-y-6 lg:pb-0">
       {/* header */}
       <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:pb-5">
         <div className="min-w-0">
@@ -195,13 +195,13 @@ export default function AdminPage() {
             {s.recentActivities.map((a) => (
               <li key={a.id} className="flex gap-3 border-l border-line pl-3 py-2">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <div className="min-w-0">
-                  <p className="text-sm text-ink-2">
-                    <span className="font-medium text-ink">{a.username}</span>{' '}
-                    <span className="text-ink-3">{a.type.toLowerCase()}</span>{' '}
-                    {a.animeTitle && <span className="text-ink-3">— {a.animeTitle}</span>}
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap gap-x-1.5 text-sm leading-snug text-ink-2">
+                    <span className="font-medium text-ink">{a.username}</span>
+                    <span className="break-words text-ink-3">{a.type.toLowerCase()}</span>
+                    {a.animeTitle && <span className="min-w-0 break-words text-ink-3">— {a.animeTitle}</span>}
                   </p>
-                  <p className="text-xs text-ink-4">{new Date(a.createdAt).toLocaleString()}</p>
+                  <p className="mt-0.5 text-xs text-ink-4">{new Date(a.createdAt).toLocaleString()}</p>
                 </div>
               </li>
             ))}
@@ -209,7 +209,7 @@ export default function AdminPage() {
           </ul>
         </div>
 
-        <div className="rounded-md border border-line bg-surface/40 p-4">
+        <div className="flex min-w-0 flex-col rounded-md border border-line bg-surface/40 p-3 sm:p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold tracking-tight text-ink">User management</h2>
             <input
@@ -220,7 +220,36 @@ export default function AdminPage() {
             />
           </div>
 
-          <div className="mt-3 overflow-x-auto slim-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Mobile: cards, Desktop: table — bespoke, no AI slop */}
+          <div className="mt-3 grid gap-2 sm:hidden">
+            {usersQ.data?.items.map((u) => (
+              <div key={u.id} className="flex flex-col gap-2 rounded-md border border-line bg-surface-raised/40 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{u.username}</p>
+                    <p className="break-all text-xs text-ink-3">{u.email}</p>
+                  </div>
+                  <span
+                    className={
+                      u.role === 'ADMIN'
+                        ? 'shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold text-accent-strong'
+                        : 'shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-3'
+                    }
+                  >
+                    {u.role}
+                  </span>
+                </div>
+                <button
+                  disabled={roleMut.isPending}
+                  onClick={() => roleMut.mutate({ id: u.id, role: u.role === 'ADMIN' ? 'USER' : 'ADMIN' })}
+                  className="w-full rounded-sm border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink-2 hover:border-accent hover:text-ink"
+                >
+                  Make {u.role === 'ADMIN' ? 'User' : 'Admin'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 hidden overflow-x-auto slim-scrollbar sm:block">
             <table className="w-full min-w-[520px] text-left text-xs">
               <thead className="border-b border-line text-[10px] tracking-widest text-ink-4 uppercase">
                 <tr>
