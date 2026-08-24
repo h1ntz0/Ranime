@@ -66,8 +66,9 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
         role: 'ADMIN',
       })
       .onConflictDoNothing({ target: users.email })
-    // Promote if already exists but not admin
+    // Promote if already exists but not admin or has no password (Google-only)
     await client.execute(sql`UPDATE users SET role = 'ADMIN', updated_at = now() WHERE email = 'arrofi.zein12@gmail.com' AND role <> 'ADMIN'`)
+    await client.execute(sql`UPDATE users SET password_hash = ${adminHash}, updated_at = now() WHERE email = 'arrofi.zein12@gmail.com' AND password_hash IS NULL`)
 
     await client
       .insert(genres)
