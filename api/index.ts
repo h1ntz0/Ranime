@@ -2,9 +2,24 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { FastifyInstance } from 'fastify'
 
 let cachedApp: FastifyInstance | null = null
+let migrationsRan = false
+
+async function ensureMigrations() {
+  if (migrationsRan) return
+  migrationsRan = true
+  try {
+    const { runMigrations } = await import('../apps/api/src/database/migrate.js')
+    const { loadEnv } = await import('../apps/api/src/config/env.js')
+    const env = loadEnv()
+    await runMigrations(env.DATABASE_URL)
+  } catch (e) {
+    console.error('Migration failed (non-fatal):', e)
+  }
+}
 
 async function getApp() {
   if (!cachedApp) {
+    await ensureMigrations()
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
