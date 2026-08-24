@@ -92,11 +92,14 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       })
 
       if (!tokenResponse.ok) {
+        const body = await tokenResponse.text()
+        console.error('Google token exchange failed', tokenResponse.status, body, { redirectUri })
         return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_token_failed`)
       }
 
       const tokenData = (await tokenResponse.json()) as { access_token?: string }
       if (!tokenData.access_token) {
+        console.error('Google token missing access_token', tokenData)
         return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_token_failed`)
       }
 
@@ -105,6 +108,8 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       })
 
       if (!userinfoResponse.ok) {
+        const body = await userinfoResponse.text()
+        console.error('Google userinfo failed', userinfoResponse.status, body)
         return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_userinfo_failed`)
       }
 
@@ -116,6 +121,7 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       }
 
       if (!profile.sub || !profile.email) {
+        console.error('Google profile invalid', profile)
         return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_profile_invalid`)
       }
 
@@ -129,7 +135,8 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       const token = authService.signToken(user)
       setSessionCookie(reply, token, app.env)
       return reply.redirect(`${app.env.FRONTEND_URL}/`)
-    } catch {
+    } catch (err) {
+      console.error('Google OAuth callback error', err)
       return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_auth_error`)
     }
   })
