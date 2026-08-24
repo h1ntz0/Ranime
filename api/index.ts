@@ -18,11 +18,29 @@ async function ensureMigrations() {
     const migrationsFolder = fileURLToPath(new URL('../database/migrations', import.meta.url))
     const pool = new pg.default.Pool({
       connectionString: env.DATABASE_URL.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(/[?&]$/, ''),
-      max: 2,
+      max: 3,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 15000,
       ssl: { rejectUnauthorized: false },
     })
     try {
       await migrate(drizzle(pool), { migrationsFolder })
+      // Ensure demo + admin exist in prod (idempotent)
+      try {
+        const argon2 = await import('argon2')
+        const demoHash = await argon2.hash('password123')
+        const adminHash = await argon2.hash('password123')
+        await pool.query(
+          `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
+          [demoHash],
+        )
+        await pool.query(
+          `INSERT INTO users (username, email, password_hash, role) VALUES ('arrofi','arrofi.zein12@gmail.com',$1,'ADMIN') ON CONFLICT (email) DO UPDATE SET role='ADMIN' WHERE users.email='arrofi.zein12@gmail.com' AND users.role<>'ADMIN'`,
+          [adminHash],
+        )
+      } catch (e) {
+        console.error('Seed admin/demo failed (non-fatal)', e)
+      }
     } finally {
       await pool.end()
     }
