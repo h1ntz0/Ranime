@@ -54,13 +54,24 @@ function DiceIcon({ active }: { active: boolean }) {
   )
 }
 
+function AdminIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 4v5c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+    </svg>
+  )
+}
+
 export function MobileBottomNav() {
   const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
 
   const items = [
     { to: '/', label: 'Home', end: true, Icon: HomeIcon, show: true },
     { to: '/explore', label: 'Explore', end: false, Icon: CompassIcon, show: true },
-    { to: '/roulette', label: 'Roulette', end: false, Icon: DiceIcon, show: true },
+    { to: '/admin', label: 'Admin', end: false, Icon: AdminIcon, show: !!isAdmin },
+    { to: '/roulette', label: 'Roulette', end: false, Icon: DiceIcon, show: !isAdmin },
     { to: '/library', label: 'Library', end: false, Icon: LibraryIcon, show: !!user },
     {
       to: user ? `/profile/${user.username}` : '/login',

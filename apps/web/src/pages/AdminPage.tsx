@@ -112,7 +112,7 @@ export default function AdminPage() {
   const s = statsQ.data!
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 lg:pb-0">
       {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
@@ -208,18 +208,18 @@ export default function AdminPage() {
         </div>
 
         <div className="rounded-md border border-line bg-surface/40 p-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold tracking-tight text-ink">User management</h2>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search username or email…"
-              className="w-48 rounded-sm border border-line bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-4 focus:border-accent focus:outline-none"
+              className="w-full rounded-sm border border-line bg-surface px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-4 focus:border-accent focus:outline-none sm:w-48"
             />
           </div>
 
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="mt-3 overflow-x-auto slim-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[520px] text-left text-xs">
               <thead className="border-b border-line text-[10px] tracking-widest text-ink-4 uppercase">
                 <tr>
                   <th className="px-2 py-2">User</th>
@@ -231,8 +231,8 @@ export default function AdminPage() {
               <tbody className="divide-y divide-line/60">
                 {usersQ.data?.items.map((u) => (
                   <tr key={u.id} className="hover:bg-surface-raised/30">
-                    <td className="px-2 py-2 font-medium text-ink">{u.username}</td>
-                    <td className="px-2 py-2 text-ink-3">{u.email}</td>
+                    <td className="max-w-[110px] truncate px-2 py-2 font-medium text-ink">{u.username}</td>
+                    <td className="max-w-[160px] truncate px-2 py-2 text-ink-3">{u.email}</td>
                     <td className="px-2 py-2">
                       <span
                         className={
@@ -248,7 +248,7 @@ export default function AdminPage() {
                       <button
                         disabled={roleMut.isPending}
                         onClick={() => roleMut.mutate({ id: u.id, role: u.role === 'ADMIN' ? 'USER' : 'ADMIN' })}
-                        className="rounded-sm border border-line px-2 py-1 text-[11px] text-ink-2 hover:border-accent hover:text-ink"
+                        className="whitespace-nowrap rounded-sm border border-line px-2 py-1 text-[11px] text-ink-2 hover:border-accent hover:text-ink"
                       >
                         Make {u.role === 'ADMIN' ? 'User' : 'Admin'}
                       </button>

@@ -363,36 +363,55 @@ export function Header() {
                   </div>
                 </div>
 
-                {/* User 2x2 Fast Actions Grid */}
+                {/* User fast actions — 2 cols, bespoke */}
                 <div className="mt-2.5 grid grid-cols-2 gap-1.5 pt-2.5 border-t border-line/60">
                   <NavLink
                     to="/library"
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md border border-line/40 bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-colors"
                   >
                     Library
                   </NavLink>
                   <NavLink
                     to="/watchlist"
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md border border-line/40 bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-colors"
                   >
                     Watchlist
                   </NavLink>
                   <NavLink
                     to="/my-ratings"
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md border border-line/40 bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-colors"
                   >
                     My Ratings
                   </NavLink>
                   <NavLink
                     to="/my-reviews"
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-center rounded-md bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised transition-colors"
+                    className="flex items-center justify-center rounded-md border border-line/40 bg-surface-raised/50 px-2.5 py-2 text-xs font-medium text-ink hover:bg-surface-raised hover:border-line transition-colors"
                   >
                     My Reviews
                   </NavLink>
+                  <NavLink
+                    to="/statistics"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center rounded-md border border-line/40 bg-surface/50 px-2.5 py-2 text-xs font-medium text-ink-2 hover:bg-surface-raised hover:text-ink transition-colors"
+                  >
+                    Statistics
+                  </NavLink>
+                  {user.role === 'ADMIN' ? (
+                    <NavLink
+                      to="/admin"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center justify-center gap-1 rounded-md border border-accent/20 bg-accent-soft px-2.5 py-2 text-xs font-semibold text-accent-strong hover:bg-accent/15 transition-colors"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      Command Center
+                    </NavLink>
+                  ) : (
+                    <div className="rounded-md border border-dashed border-line/40 px-2.5 py-2 text-center text-[11px] text-ink-4">—</div>
+                  )}
                 </div>
               </div>
             ) : (
