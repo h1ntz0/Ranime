@@ -8,10 +8,24 @@ async function ensureMigrations() {
   if (migrationsRan) return
   migrationsRan = true
   try {
-    const { runMigrations } = await import('../apps/api/src/database/migrate.js')
+    // Run via isolated pool to avoid clobbering the global production pool
+    const pg = await import('pg')
+    const { drizzle } = await import('drizzle-orm/node-postgres')
+    const { migrate } = await import('drizzle-orm/node-postgres/migrator')
     const { loadEnv } = await import('../apps/api/src/config/env.js')
+    const { fileURLToPath } = await import('node:url')
     const env = loadEnv()
-    await runMigrations(env.DATABASE_URL)
+    const migrationsFolder = fileURLToPath(new URL('../database/migrations', import.meta.url))
+    const pool = new pg.default.Pool({
+      connectionString: env.DATABASE_URL.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(/[?&]$/, ''),
+      max: 2,
+      ssl: { rejectUnauthorized: false },
+    })
+    try {
+      await migrate(drizzle(pool), { migrationsFolder })
+    } finally {
+      await pool.end()
+    }
   } catch (e) {
     console.error('Migration failed (non-fatal):', e)
   }

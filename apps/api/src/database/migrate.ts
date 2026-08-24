@@ -9,7 +9,7 @@ export const migrationsFolder = fileURLToPath(
 )
 
 export async function runMigrations(databaseUrl: string): Promise<void> {
-  const pool = createPool(databaseUrl)
+  const pool = createPool(databaseUrl, { reuse: false })
   try {
     await migrate(drizzle(pool), { migrationsFolder })
   } finally {
