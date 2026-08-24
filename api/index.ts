@@ -28,18 +28,22 @@ async function ensureMigrations() {
       // Ensure demo + admin exist in prod (idempotent)
       try {
         const argon2 = await import('argon2')
-        const demoHash = await argon2.hash('password123')
-        const adminHash = await argon2.hash('password123')
+        const demoHash = await argon2.hash('Demo#R4nime2026!')
+        const adminHash = await argon2.hash('Adm1n#R4nime2026!')
         await pool.query(
           `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
           [demoHash],
         )
         await pool.query(
+          `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
+          [demoHash],
+        )
+        await pool.query(`UPDATE users SET password_hash=$1, updated_at=now() WHERE email='demo@example.local'`, [demoHash])
+        await pool.query(
           `INSERT INTO users (username, email, password_hash, role) VALUES ('arrofi','arrofi.zein12@gmail.com',$1,'ADMIN') ON CONFLICT (email) DO NOTHING`,
           [adminHash],
         )
-        await pool.query(`UPDATE users SET role='ADMIN', updated_at=now() WHERE email='arrofi.zein12@gmail.com' AND role<>'ADMIN'`)
-        await pool.query(`UPDATE users SET password_hash=$1, updated_at=now() WHERE email='arrofi.zein12@gmail.com' AND password_hash IS NULL`, [adminHash])
+        await pool.query(`UPDATE users SET password_hash=$1, role='ADMIN', updated_at=now() WHERE email='arrofi.zein12@gmail.com'`, [adminHash])
       } catch (e) {
         console.error('Seed admin/demo failed (non-fatal)', e)
       }

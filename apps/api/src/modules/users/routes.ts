@@ -18,7 +18,13 @@ const updateProfileSchema = z
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(200),
-  newPassword: z.string().min(8).max(200),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(200)
+    .refine((v) => !/password/i.test(v), 'Password must not contain "password"')
+    .refine((v) => /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v), 'Password must include uppercase, lowercase, and a number')
+    .refine((v) => /[^A-Za-z0-9]/.test(v), 'Password must include at least one symbol'),
 })
 
 export async function usersRoutes(

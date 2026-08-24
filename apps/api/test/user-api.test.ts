@@ -73,7 +73,7 @@ afterAll(async () => {
 describe('auth', () => {
   it('registers a user and sets the session cookie', async () => {
     const res = await inject('POST', '/api/auth/register', {
-      body: { username: 'alice', email: 'alice@example.com', password: 'password123' },
+      body: { username: 'alice', email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json().data.username).toBe('alice')
@@ -82,7 +82,7 @@ describe('auth', () => {
 
   it('rejects duplicate registration', async () => {
     const res = await inject('POST', '/api/auth/register', {
-      body: { username: 'alice', email: 'alice@example.com', password: 'password123' },
+      body: { username: 'alice', email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     expect(res.statusCode).toBe(409)
     expect(res.json().error.code).toBe('CONFLICT')
@@ -97,7 +97,7 @@ describe('auth', () => {
 
   it('logs in with correct credentials', async () => {
     const res = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     expect(res.statusCode).toBe(200)
     expect(res.json().data.username).toBe('alice')
@@ -106,7 +106,7 @@ describe('auth', () => {
 
   it('rejects wrong password', async () => {
     const res = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'nope-nope' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Wrong1' },
     })
     expect(res.statusCode).toBe(401)
     expect(res.json().error.message).toBe('Invalid email or password')
@@ -114,7 +114,7 @@ describe('auth', () => {
 
   it('returns current user via /auth/me', async () => {
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     const token = cookies(login)
     const res = await inject('GET', '/api/auth/me', { token })
@@ -127,7 +127,7 @@ describe('auth', () => {
 
   it('logs out and clears the session cookie', async () => {
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     const token = cookies(login)
     const logout = await inject('POST', '/api/auth/logout', { token })
@@ -187,7 +187,7 @@ describe('watchlist + library', () => {
     expect(blocked.statusCode).toBe(401)
 
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     token = cookies(login)
     const res = await inject('POST', '/api/anime/900001/watchlist', {
@@ -241,7 +241,7 @@ describe('ratings', () => {
 
   it('creates a rating', async () => {
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     token = cookies(login)
     const res = await inject('POST', '/api/anime/900001/rating', { token, body: { score: 8.5 } })
@@ -254,7 +254,7 @@ describe('ratings', () => {
     expect(res.json().data.score).toBe(7)
 
     const other = await inject('POST', '/api/auth/register', {
-      body: { username: 'carol', email: 'carol@example.com', password: 'password123' },
+      body: { username: 'carol', email: 'carol@example.com', password: 'Str0ng!Pass123' },
     })
     const otherToken = cookies(other)
     await inject('POST', '/api/anime/900001/rating', { token: otherToken, body: { score: 9 } })
@@ -292,7 +292,7 @@ describe('reviews', () => {
 
   it('creates a review', async () => {
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     token = cookies(login)
     const res = await inject('POST', '/api/anime/900001/reviews', { token, body: validReview })
@@ -314,7 +314,7 @@ describe('reviews', () => {
 
   it('hides spoilers from the public list', async () => {
     const reg = await inject('POST', '/api/auth/register', {
-      body: { username: 'dave', email: 'dave@example.com', password: 'password123' },
+      body: { username: 'dave', email: 'dave@example.com', password: 'Str0ng!Pass123' },
     })
     otherToken = cookies(reg)
     await inject('POST', '/api/anime/900001/reviews', {
@@ -357,7 +357,7 @@ describe('reviews', () => {
 describe('statistics', () => {
   it('reflects real user data', async () => {
     const login = await inject('POST', '/api/auth/login', {
-      body: { email: 'alice@example.com', password: 'password123' },
+      body: { email: 'alice@example.com', password: 'Str0ng!Pass123' },
     })
     const token = cookies(login)
     const res = await inject('GET', '/api/statistics', { token })
