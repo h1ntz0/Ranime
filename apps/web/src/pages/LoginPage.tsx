@@ -30,7 +30,8 @@ export default function LoginPage() {
     try {
       await login(email.trim(), password)
       const next = searchParams.get('next')
-      navigate(next && next.startsWith('/') ? next : '/')
+      const isSafeRedirect = next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\')
+      navigate(isSafeRedirect ? next : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
