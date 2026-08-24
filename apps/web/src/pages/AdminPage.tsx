@@ -16,18 +16,18 @@ function MetricCard({
   icon: React.ReactNode
 }) {
   return (
-    <div className="relative overflow-hidden rounded-md border border-line bg-surface/60 p-4">
+    <div className="relative overflow-hidden rounded-md border border-line bg-surface/60 p-3 sm:p-4">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-      <div className="flex items-start justify-between">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-line bg-surface-raised text-ink-2">
+      <div className="flex items-start justify-between gap-2">
+        <span className="inline-flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-sm border border-line bg-surface-raised text-[11px] text-ink-2 sm:text-xs">
           {icon}
         </span>
-        <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-medium tracking-widest text-ink-4 uppercase">live</span>
+        <span className="shrink-0 rounded-full border border-line px-1.5 py-0.5 text-[9px] font-medium tracking-widest text-ink-4 uppercase sm:px-2 sm:text-[10px]">live</span>
       </div>
-      <div className="mt-3">
-        <p className="text-2xl font-semibold tracking-tight text-ink tabular-nums">{value}</p>
-        <p className="mt-1 text-xs font-medium tracking-wide text-ink-3 uppercase">{label}</p>
-        {sub && <p className="mt-1 text-xs text-ink-4">{sub}</p>}
+      <div className="mt-2 sm:mt-3">
+        <p className="truncate text-xl font-semibold tracking-tight text-ink tabular-nums sm:text-2xl">{value}</p>
+        <p className="mt-1 truncate text-[10px] font-medium tracking-wide text-ink-3 uppercase sm:text-xs">{label}</p>
+        {sub && <p className="mt-0.5 truncate text-[11px] text-ink-4">{sub}</p>}
       </div>
     </div>
   )
@@ -112,60 +112,64 @@ export default function AdminPage() {
   const s = statsQ.data!
 
   return (
-    <div className="space-y-6 pb-20 lg:pb-0">
+    <div className="min-w-0 space-y-5 pb-20 sm:space-y-6 lg:pb-0">
       {/* header */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs tracking-widest text-ink-4 uppercase">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-positive" />
+      <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:pb-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] tracking-widest text-ink-4 uppercase sm:text-xs">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-positive" />
             Live • Realtime monitoring
           </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">Command Center</h1>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-3">
-            Overview of Ranime growth, users, and system health. Auto-refresh every 10s.
-          </p>
+          <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-ink sm:mt-2 sm:text-2xl">Command Center</h1>
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-ink-3 sm:text-sm">Overview of Ranime growth, users, and system health. Auto-refresh every 10s.</p>
         </div>
-        <div className="rounded-sm border border-line bg-surface/50 px-3 py-2 text-xs text-ink-3">
-          <span className="text-ink-2">{s.systemStatus.database}</span> • uptime {(s.systemStatus.uptime / 3600).toFixed(1)}h •{' '}
-          {new Date(s.systemStatus.serverTime).toLocaleTimeString()}
+        <div className="flex w-full items-center gap-2 overflow-x-auto rounded-sm border border-line bg-surface/50 px-2.5 py-2 text-[11px] text-ink-3 sm:w-auto sm:whitespace-nowrap sm:px-3 sm:text-xs">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" />
+          <span className="whitespace-nowrap text-ink-2">{s.systemStatus.database}</span>
+          <span className="text-ink-4">•</span>
+          <span className="whitespace-nowrap">{(s.systemStatus.uptime / 3600).toFixed(1)}h uptime</span>
+          <span className="text-ink-4">•</span>
+          <span className="whitespace-nowrap">{new Date(s.systemStatus.serverTime).toLocaleTimeString()}</span>
         </div>
       </div>
 
-      {/* metrics */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-        <MetricCard label="Total users" value={s.overview.totalUsers} icon={<span className="text-xs">◎</span>} />
-        <MetricCard label="Admins" value={s.overview.totalAdmins} sub="privileged" icon={<span className="text-xs">◆</span>} />
-        <MetricCard label="Anime" value={s.overview.totalAnime} icon={<span className="text-xs">▣</span>} />
-        <MetricCard label="Reviews" value={s.overview.totalReviews} icon={<span className="text-xs">✎</span>} />
-        <MetricCard label="Ratings" value={s.overview.totalRatings} icon={<span className="text-xs">★</span>} />
-        <MetricCard label="Watchlist" value={s.overview.totalWatchlistEntries} icon={<span className="text-xs">≡</span>} />
-        <MetricCard label="Activities" value={s.overview.totalActivities} icon={<span className="text-xs">◐</span>} />
+      {/* metrics — bespoke: 2 cols on mobile, last card spans full width to avoid orphan */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-7">
+        <MetricCard label="Total users" value={s.overview.totalUsers} icon={<span className="text-[11px]">◎</span>} />
+        <MetricCard label="Admins" value={s.overview.totalAdmins} sub="privileged" icon={<span className="text-[11px]">◆</span>} />
+        <MetricCard label="Anime" value={s.overview.totalAnime} icon={<span className="text-[11px]">▣</span>} />
+        <MetricCard label="Reviews" value={s.overview.totalReviews} icon={<span className="text-[11px]">✎</span>} />
+        <MetricCard label="Ratings" value={s.overview.totalRatings} icon={<span className="text-[11px]">★</span>} />
+        <MetricCard label="Watchlist" value={s.overview.totalWatchlistEntries} icon={<span className="text-[11px]">≡</span>} />
+        <div className="col-span-2 md:col-span-1 lg:col-span-1">
+          <MetricCard label="Activities" value={s.overview.totalActivities} icon={<span className="text-[11px]">◐</span>} />
+        </div>
       </div>
 
       {/* growth + recent */}
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.85fr]">
-        <div className="rounded-md border border-line bg-surface/40 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-tight text-ink">User growth — 14 days</h2>
-            <span className="text-xs text-ink-4">{s.userGrowth.length} buckets</span>
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.35fr_0.85fr]">
+        <div className="min-w-0 rounded-md border border-line bg-surface/40 p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-xs font-semibold tracking-tight text-ink sm:text-sm">User growth — 14 days</h2>
+            <span className="shrink-0 text-[11px] text-ink-4 sm:text-xs">{s.userGrowth.length} buckets</span>
           </div>
-          <div className="mt-4">
+          <div className="mt-3 sm:mt-4">
             <Sparkline data={s.userGrowth} />
           </div>
-          <div className="mt-3 flex gap-1 overflow-x-auto">
+          <div className="mt-3 flex gap-1 overflow-x-auto pb-1 slim-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
             {s.userGrowth.map((d) => (
-              <span key={d.date} className="shrink-0 rounded-sm border border-line px-1.5 py-0.5 text-[10px] text-ink-3">
+              <span key={d.date} className="shrink-0 whitespace-nowrap rounded-sm border border-line px-1.5 py-0.5 text-[10px] text-ink-3">
                 {d.date.slice(5)} · {d.count}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="rounded-md border border-line bg-surface/40 p-4">
-          <h2 className="text-sm font-semibold tracking-tight text-ink">Recent users</h2>
+        <div className="min-w-0 rounded-md border border-line bg-surface/40 p-3 sm:p-4">
+          <h2 className="text-xs font-semibold tracking-tight text-ink sm:text-sm">Recent users</h2>
           <ul className="mt-3 divide-y divide-line/60">
             {s.recentUsers.map((u) => (
-              <li key={u.id} className="flex items-center justify-between gap-3 py-2.5">
+              <li key={u.id} className="flex items-center justify-between gap-2 py-2.5 sm:gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">{u.username}</p>
                   <p className="truncate text-xs text-ink-3">{u.email}</p>
@@ -173,8 +177,8 @@ export default function AdminPage() {
                 <span
                   className={
                     u.role === 'ADMIN'
-                      ? 'shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold tracking-widest text-accent-strong uppercase ring-1 ring-accent/20'
-                      : 'shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] tracking-widest text-ink-4 uppercase'
+                      ? 'shrink-0 whitespace-nowrap rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold tracking-widest text-accent-strong uppercase ring-1 ring-accent/20'
+                      : 'shrink-0 whitespace-nowrap rounded-full border border-line px-2 py-0.5 text-[10px] tracking-widest text-ink-4 uppercase'
                   }
                 >
                   {u.role}
@@ -186,8 +190,8 @@ export default function AdminPage() {
       </div>
 
       {/* activity + users table */}
-      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-md border border-line bg-surface/40 p-4">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0 rounded-md border border-line bg-surface/40 p-3 sm:p-4">
           <h2 className="text-sm font-semibold tracking-tight text-ink">Recent activity</h2>
           <ul className="mt-3 space-y-0">
             {s.recentActivities.map((a) => (
@@ -283,8 +287,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-ink-4">
-        LAN access: <span className="text-ink-3">http://&lt;wifi-ip&gt;:3000/admin</span> • Local:<span className="text-ink-3"> http://localhost:3000/admin</span>
+      <p className="break-words px-2 text-center text-[11px] leading-relaxed text-ink-4 sm:text-xs">
+        LAN <span className="text-ink-3">http://&lt;wifi-ip&gt;:3000/admin</span> • Local <span className="text-ink-3">http://localhost:3000/admin</span>
       </p>
     </div>
   )
