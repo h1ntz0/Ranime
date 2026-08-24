@@ -58,14 +58,87 @@ export class AuthService {
     if (!user) throw unauthorized('Invalid email or password')
 
     let valid = false
-    try {
-      valid = await argon2.verify(user.passwordHash, password)
-    } catch {
-      valid = false
+    if (user.passwordHash) {
+      try {
+        valid = await argon2.verify(user.passwordHash, password)
+      } catch {
+        valid = false
+      }
     }
     if (!valid) throw unauthorized('Invalid email or password')
 
     return user
+  }
+
+  async findOrCreateGoogleUser(googleUser: {
+    googleId: string
+    email: string
+    name?: string
+    avatarUrl?: string
+  }): Promise<User> {
+    const email = googleUser.email.trim().toLowerCase()
+
+    const [byGoogleId] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.googleId, googleUser.googleId))
+
+    if (byGoogleId) {
+      if (googleUser.avatarUrl && !byGoogleId.avatarUrl) {
+        const [updated] = await this.db
+          .update(users)
+          .set({ avatarUrl: googleUser.avatarUrl, updatedAt: new Date() })
+          .where(eq(users.id, byGoogleId.id))
+          .returning()
+        return updated ?? byGoogleId
+      }
+      return byGoogleId
+    }
+
+    const [byEmail] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+
+    if (byEmail) {
+      const [updated] = await this.db
+        .update(users)
+        .set({
+          googleId: googleUser.googleId,
+          avatarUrl: byEmail.avatarUrl ?? googleUser.avatarUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, byEmail.id))
+        .returning()
+      return updated ?? byEmail
+    }
+
+    let baseUsername = (googleUser.name || email.split('@')[0] || 'user')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .slice(0, 24)
+    if (baseUsername.length < 3) baseUsername = `user_${baseUsername}`.slice(0, 24)
+
+    let username = baseUsername
+    let counter = 1
+    while (true) {
+      const [existing] = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, username))
+      if (!existing) break
+      username = `${baseUsername.slice(0, 20)}_${counter++}`
+    }
+
+    const [created] = await this.db
+      .insert(users)
+      .values({
+        username,
+        email,
+        googleId: googleUser.googleId,
+        avatarUrl: googleUser.avatarUrl,
+      })
+      .returning()
+    return created!
   }
 
   async getUserById(id: string): Promise<User | undefined> {

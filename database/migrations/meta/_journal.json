@@ -15,6 +15,13 @@
       "when": 1787060802106,
       "tag": "0001_omniscient_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787564311000,
+      "tag": "0002_brainy_union_jack",
+      "breakpoints": true
     }
   ]
 }
