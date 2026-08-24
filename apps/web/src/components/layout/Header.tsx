@@ -162,6 +162,11 @@ export function Header() {
               Library
             </NavLink>
           )}
+          {user?.role === 'ADMIN' && (
+            <NavLink to="/admin" className={linkClass}>
+              Admin
+            </NavLink>
+          )}
         </nav>
 
         {/* Search & Actions */}
@@ -228,6 +233,16 @@ export function Header() {
                     >
                       Settings
                     </Link>
+                    {user.role === 'ADMIN' && (
+                      <Link
+                        to="/admin"
+                        role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-3 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent-soft hover:text-accent-strong"
+                      >
+                        Admin • Command Center
+                      </Link>
+                    )}
                     <div className="my-1 border-t border-line" />
                     <div role="menuitem">
                       <Button

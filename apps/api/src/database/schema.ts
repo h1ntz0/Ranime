@@ -235,6 +235,7 @@ export const syncLogs = pgTable(
 /* ---------- User-owned data ---------- */
 
 export const listStatuses = ['PLANNING', 'WATCHING', 'COMPLETED', 'PAUSED', 'DROPPED'] as const
+export const userRoles = ['USER', 'ADMIN'] as const
 
 export const users = pgTable(
   'users',
@@ -244,6 +245,7 @@ export const users = pgTable(
     email: text('email').notNull(),
     passwordHash: text('password_hash'),
     googleId: text('google_id'),
+    role: text('role', { enum: userRoles }).notNull().default('USER'),
     avatarUrl: text('avatar_url'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

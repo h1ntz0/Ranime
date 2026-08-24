@@ -41,9 +41,10 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id })
+    const isAdminEmail = email === 'arrofi.zein12@gmail.com'
     const [row] = await this.db
       .insert(users)
-      .values({ username, email, passwordHash })
+      .values({ username, email, passwordHash, role: isAdminEmail ? 'ADMIN' : 'USER' })
       .returning()
     return row!
   }
@@ -77,6 +78,7 @@ export class AuthService {
     avatarUrl?: string
   }): Promise<User> {
     const email = googleUser.email.trim().toLowerCase()
+    const isAdminEmail = email === 'arrofi.zein12@gmail.com'
 
     const [byGoogleId] = await this.db
       .select()
@@ -84,10 +86,14 @@ export class AuthService {
       .where(eq(users.googleId, googleUser.googleId))
 
     if (byGoogleId) {
-      if (googleUser.avatarUrl && !byGoogleId.avatarUrl) {
+      const updates: Partial<typeof users.$inferInsert> = {}
+      if (googleUser.avatarUrl && !byGoogleId.avatarUrl) updates.avatarUrl = googleUser.avatarUrl
+      if (isAdminEmail && byGoogleId.role !== 'ADMIN') updates.role = 'ADMIN'
+
+      if (Object.keys(updates).length > 0) {
         const [updated] = await this.db
           .update(users)
-          .set({ avatarUrl: googleUser.avatarUrl, updatedAt: new Date() })
+          .set({ ...updates, updatedAt: new Date() })
           .where(eq(users.id, byGoogleId.id))
           .returning()
         return updated ?? byGoogleId
@@ -106,6 +112,7 @@ export class AuthService {
         .set({
           googleId: googleUser.googleId,
           avatarUrl: byEmail.avatarUrl ?? googleUser.avatarUrl,
+          role: isAdminEmail ? 'ADMIN' : byEmail.role,
           updatedAt: new Date(),
         })
         .where(eq(users.id, byEmail.id))
@@ -135,6 +142,7 @@ export class AuthService {
         username,
         email,
         googleId: googleUser.googleId,
+        role: isAdminEmail ? 'ADMIN' : 'USER',
         avatarUrl: googleUser.avatarUrl,
       })
       .returning()

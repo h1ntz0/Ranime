@@ -143,8 +143,42 @@ export interface User {
   id: string
   username: string
   email: string
+  role?: 'USER' | 'ADMIN'
   avatarUrl: string | null
   createdAt: string
+}
+
+export interface AdminStats {
+  overview: {
+    totalUsers: number
+    totalAdmins: number
+    totalAnime: number
+    totalReviews: number
+    totalRatings: number
+    totalWatchlistEntries: number
+    totalActivities: number
+  }
+  userGrowth: { date: string; count: number }[]
+  recentUsers: {
+    id: string
+    username: string
+    email: string
+    role: 'USER' | 'ADMIN'
+    avatarUrl: string | null
+    createdAt: string
+  }[]
+  recentActivities: {
+    id: string
+    type: string
+    createdAt: string
+    username: string
+    animeTitle: string | null
+  }[]
+  systemStatus: {
+    database: string
+    uptime: number
+    serverTime: string
+  }
 }
 
 export interface UserProfile extends User {

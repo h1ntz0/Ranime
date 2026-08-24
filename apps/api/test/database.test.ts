@@ -227,6 +227,10 @@ describe('seed', () => {
     const count = Number(
       (await client.select({ count: sql<number>`count(*)::int` }).from(users))[0]!.count,
     )
-    expect(count).toBe(before + 1)
+    // runSeed creates demo + admin (arrofi) → +2 when DB was empty, idempotent on second run
+    expect(count).toBe(before + 2)
+    const [adminRow] = await client.select().from(users).where(eq(users.email, 'arrofi.zein12@gmail.com'))
+    expect(adminRow).toBeDefined()
+    expect(adminRow!.role).toBe('ADMIN')
   })
 })
