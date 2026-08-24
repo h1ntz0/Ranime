@@ -18,6 +18,9 @@ export const envSchema = z.object({
   ANILIST_API_URL: z.string().url().default('https://graphql.anilist.co'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

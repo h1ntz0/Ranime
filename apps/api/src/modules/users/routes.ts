@@ -1,17 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import argon2 from 'argon2'
-import { randomUUID } from 'node:crypto'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { AppError, notFound, unauthorized } from '../../lib/errors.js'
 import { sendData, sendPage } from '../../lib/http.js'
 import { toPublicUser } from '../auth/helpers.js'
 import type { AuthService } from '../auth/service.js'
 import type { ActivityService } from '../activity/service.js'
-
-const UPLOAD_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../../uploads/avatars')
 
 const updateProfileSchema = z
   .object({

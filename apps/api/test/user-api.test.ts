@@ -149,6 +149,32 @@ describe('auth', () => {
     const missing = await inject('GET', '/api/users/ghost')
     expect(missing.statusCode).toBe(404)
   })
+
+  it('handles google auth redirection and user creation', async () => {
+    const redirectRes = await inject('GET', '/api/auth/google')
+    expect(redirectRes.statusCode).toBe(500) // not configured yet in default env
+
+    // Auth service findOrCreateGoogleUser test
+    const authService = (app as unknown as { authService: import('../src/modules/auth/service.js').AuthService }).authService
+    const gUser = await authService.findOrCreateGoogleUser({
+      googleId: 'google-12345',
+      email: 'googleuser@example.com',
+      name: 'Google User',
+      avatarUrl: 'https://example.com/avatar.png',
+    })
+    expect(gUser.googleId).toBe('google-12345')
+    expect(gUser.email).toBe('googleuser@example.com')
+    expect(gUser.username).toBe('GoogleUser')
+
+    // Link existing by email
+    const linkedUser = await authService.findOrCreateGoogleUser({
+      googleId: 'google-67890',
+      email: 'alice@example.com',
+      name: 'Alice Google',
+    })
+    expect(linkedUser.email).toBe('alice@example.com')
+    expect(linkedUser.googleId).toBe('google-67890')
+  })
 })
 
 describe('watchlist + library', () => {

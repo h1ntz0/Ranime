@@ -37,7 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.removeItem(USER_STORAGE_KEY)
       }
-    } catch {}
+    } catch {
+      // Ignore storage write errors in restricted contexts
+    }
   }, [])
 
   useEffect(() => {

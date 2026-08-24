@@ -242,7 +242,8 @@ export const users = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     username: text('username').notNull(),
     email: text('email').notNull(),
-    passwordHash: text('password_hash').notNull(),
+    passwordHash: text('password_hash'),
+    googleId: text('google_id'),
     avatarUrl: text('avatar_url'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -250,6 +251,7 @@ export const users = pgTable(
   (t) => [
     uniqueIndex('users_username_unique').on(t.username),
     uniqueIndex('users_email_unique').on(t.email),
+    uniqueIndex('users_google_id_unique').on(t.googleId),
     check('users_username_length', sql`char_length(${t.username}) BETWEEN 3 AND 32`),
   ],
 )

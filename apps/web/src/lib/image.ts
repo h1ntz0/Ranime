@@ -8,7 +8,7 @@ export async function compressAvatarImage(file: File, maxDimension = 512, qualit
     return file
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       const img = new Image()
