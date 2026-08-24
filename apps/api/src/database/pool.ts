@@ -14,7 +14,7 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
 
   const shouldReuse = opts.reuse ?? process.env.NODE_ENV === 'production'
 
-  if (shouldReuse && globalPool) {
+  if (shouldReuse && globalPool && !globalPool.ended) {
     return globalPool
   }
 
