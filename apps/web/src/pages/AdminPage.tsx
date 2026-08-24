@@ -112,7 +112,7 @@ export default function AdminPage() {
   const s = statsQ.data!
 
   return (
-    <div className="min-w-0 space-y-5 pb-20 sm:space-y-6 lg:pb-0">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-5 pb-20 sm:space-y-6 lg:pb-0">
       {/* header */}
       <div className="flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:pb-5">
         <div className="min-w-0">
@@ -133,17 +133,15 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* metrics — bespoke: 2 cols on mobile, last card spans full width to avoid orphan */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-7">
+      {/* metrics — bespoke mobile-first: 1 col on <640 to prevent melebar, 2 cols on sm */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-7">
         <MetricCard label="Total users" value={s.overview.totalUsers} icon={<span className="text-[11px]">◎</span>} />
         <MetricCard label="Admins" value={s.overview.totalAdmins} sub="privileged" icon={<span className="text-[11px]">◆</span>} />
         <MetricCard label="Anime" value={s.overview.totalAnime} icon={<span className="text-[11px]">▣</span>} />
         <MetricCard label="Reviews" value={s.overview.totalReviews} icon={<span className="text-[11px]">✎</span>} />
         <MetricCard label="Ratings" value={s.overview.totalRatings} icon={<span className="text-[11px]">★</span>} />
         <MetricCard label="Watchlist" value={s.overview.totalWatchlistEntries} icon={<span className="text-[11px]">≡</span>} />
-        <div className="col-span-2 md:col-span-1 lg:col-span-1">
-          <MetricCard label="Activities" value={s.overview.totalActivities} icon={<span className="text-[11px]">◐</span>} />
-        </div>
+        <MetricCard label="Activities" value={s.overview.totalActivities} icon={<span className="text-[11px]">◐</span>} />
       </div>
 
       {/* growth + recent */}
