@@ -66,6 +66,8 @@ export function stripHtml(html: string | null): string {
     .replace(/&amp;/g, '&')
     .replace(/&#039;/g, "'")
     .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/\s+/g, ' ')
     .trim()
 }
