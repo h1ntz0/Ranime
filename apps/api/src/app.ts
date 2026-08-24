@@ -90,18 +90,24 @@ export async function buildApp(options: BuildAppOptions = {}) {
     reply.header('X-XSS-Protection', '1; mode=block')
     reply.header('Referrer-Policy', 'strict-origin-when-cross-origin')
     reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    reply.header(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.anilist.co https://*.googleusercontent.com; connect-src 'self' https://graphql.anilist.co; frame-ancestors 'none';",
+    )
   })
 
-  const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim())
+  const allowedOrigins = [
+    ...env.FRONTEND_URL.split(',').map((u) => u.trim()),
+    'https://ranime-rate.vercel.app',
+    'https://ranime-alpha.vercel.app',
+  ]
 
   app.register(cors, {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true)
       if (
         allowedOrigins.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1')
+        (env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1')))
       ) {
         return callback(null, true)
       }
@@ -112,7 +118,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.register(cookie)
   app.register(multipart, {
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10 MB limit to support high-res mobile phone camera photos
+      fileSize: 5 * 1024 * 1024, // 5 MB limit
     },
   })
   app.register(staticFiles, {
@@ -123,6 +129,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
     global: true,
     max: 300,
     timeWindow: '1 minute',
+    errorResponseBuilder: () => ({
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests, please try again later.',
+      },
+    }),
   })
 
   app.setNotFoundHandler((request, reply) => {

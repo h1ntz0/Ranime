@@ -9,7 +9,7 @@ export function setSessionCookie(reply: FastifyReply, token: string, env: { NODE
   const isProd = env.NODE_ENV === 'production'
   reply.setCookie(SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: isProd ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: isProd,
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
@@ -20,7 +20,7 @@ export function clearSessionCookie(reply: FastifyReply, env?: { NODE_ENV: string
   const isProd = env?.NODE_ENV === 'production' || process.env.NODE_ENV === 'production'
   reply.clearCookie(SESSION_COOKIE, {
     httpOnly: true,
-    sameSite: isProd ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: isProd,
     path: '/',
   })
