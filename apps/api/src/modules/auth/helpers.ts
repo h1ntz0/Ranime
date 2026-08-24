@@ -30,6 +30,7 @@ export function toPublicUser(user: {
   id: string
   username: string
   email: string
+  role?: string
   avatarUrl?: string | null
   createdAt: Date
 }) {
@@ -37,6 +38,7 @@ export function toPublicUser(user: {
     id: user.id,
     username: user.username,
     email: user.email,
+    role: user.role ?? 'USER',
     avatarUrl: user.avatarUrl ?? null,
     createdAt: user.createdAt,
   }

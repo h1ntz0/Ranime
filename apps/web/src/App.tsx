@@ -22,6 +22,7 @@ import MyReviewsPage from './pages/MyReviewsPage'
 import ComparePage from './pages/ComparePage'
 import RoulettePage from './pages/RoulettePage'
 import TierListPage from './pages/TierListPage'
+import AdminPage from './pages/AdminPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -88,6 +89,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminPage />
             </ProtectedRoute>
           }
         />

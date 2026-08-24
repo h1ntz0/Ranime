@@ -55,6 +55,20 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
       })
       .onConflictDoNothing({ target: users.email })
 
+    // Ensure dedicated admin account exists
+    const adminHash = await hash('password123')
+    await client
+      .insert(users)
+      .values({
+        username: 'arrofi',
+        email: 'admin@example.local',
+        passwordHash: adminHash,
+        role: 'ADMIN',
+      })
+      .onConflictDoNothing({ target: users.email })
+    // Promote if already exists but not admin
+    await client.execute(sql`UPDATE users SET role = 'ADMIN', updated_at = now() WHERE email = 'admin@example.local' AND role <> 'ADMIN'`)
+
     await client
       .insert(genres)
       .values(SEED_GENRES.map((name) => ({ name, slug: slugify(name) })))

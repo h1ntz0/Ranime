@@ -18,6 +18,7 @@ import { watchlistRoutes } from './modules/watchlist/routes.js'
 import { ratingRoutes } from './modules/ratings/routes.js'
 import { reviewRoutes } from './modules/reviews/routes.js'
 import { statisticsRoutes } from './modules/statistics/routes.js'
+import { adminRoutes } from './modules/admin/routes.js'
 import { requireAuth, optionalAuth } from './modules/auth/helpers.js'
 import { AuthService } from './modules/auth/service.js'
 import { LibraryService } from './modules/library/service.js'
@@ -168,6 +169,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
       statisticsRoutes(instance, options.statisticsService ?? new StatisticsService({ pool })),
     { prefix: '/api' },
   )
+  app.register(async (instance) => adminRoutes(instance, authService), { prefix: '/api' })
 
   app.addHook('onClose', async () => {
     await pool.end()

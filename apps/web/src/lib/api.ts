@@ -302,3 +302,15 @@ export function fetchRouletteAnime(
 ): Promise<AnimeDetail | null> {
   return request(`/anime/roulette${qs(params)}`, { signal })
 }
+
+/* ---------- admin ---------- */
+import type { AdminStats } from './types'
+export function fetchAdminStats(signal?: AbortSignal): Promise<AdminStats> {
+  return request('/admin/stats', { signal })
+}
+export function fetchAdminUsers(params: { page?: number; limit?: number; q?: string } = {}, signal?: AbortSignal) {
+  return request<Paged<User>>(`/admin/users${qs(params as Record<string, unknown>)}`, { signal })
+}
+export function updateUserRole(userId: string, role: 'USER' | 'ADMIN'): Promise<User> {
+  return request(`/admin/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) })
+}
