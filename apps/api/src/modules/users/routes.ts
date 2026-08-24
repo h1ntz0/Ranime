@@ -152,8 +152,15 @@ export async function usersRoutes(
           user.id,
         ])
       ).rows[0]
-      const valid = row && (await argon2.verify(row.password_hash, input.currentPassword))
-      if (!valid) throw unauthorized('Current password is incorrect')
+    let valid = false
+    if (row && row.password_hash) {
+      try {
+        valid = await argon2.verify(row.password_hash, input.currentPassword)
+      } catch {
+        valid = false
+      }
+    }
+    if (!valid) throw unauthorized('Current password is incorrect')
 
       const hash = await argon2.hash(input.newPassword, { type: argon2.argon2id })
       await app.pool.query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [
