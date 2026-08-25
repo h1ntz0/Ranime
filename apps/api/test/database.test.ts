@@ -222,7 +222,8 @@ describe('seed', () => {
       .where(eq(users.email, DEMO_USER.email))
     expect(row).toBeDefined()
     expect(row!.username).toBe(DEMO_USER.username)
-    expect(await verify(row!.passwordHash, DEMO_USER.password)).toBe(true)
+    expect(row!.passwordHash).toBeTruthy()
+    expect(await verify(row!.passwordHash!, DEMO_USER.password)).toBe(true)
 
     const count = Number(
       (await client.select({ count: sql<number>`count(*)::int` }).from(users))[0]!.count,

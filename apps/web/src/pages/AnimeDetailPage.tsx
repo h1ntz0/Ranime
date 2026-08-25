@@ -629,8 +629,8 @@ export default function AnimeDetailPage() {
                       if (charRoleFilter === 'ALL') return true
                       return c.role.toUpperCase() === charRoleFilter
                     })
-                    .map((c) => (
-                      <div key={c.id} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3 transition-colors hover:border-line-strong">
+                    .map((c, idx) => (
+                      <div key={`${c.id}-${c.role}-${idx}`} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3 transition-colors hover:border-line-strong">
                         <Poster src={c.image} alt={c.name} className="h-16 w-12 rounded-sm shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
@@ -676,8 +676,8 @@ export default function AnimeDetailPage() {
               <EmptyState title="No staff data available" />
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {staff.data.map((s) => (
-                  <div key={s.id} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3">
+                {staff.data.map((s, idx) => (
+                  <div key={`${s.id}-${s.role}-${idx}`} className="flex items-center gap-3 rounded-sm border border-line bg-surface/40 p-3">
                     <Poster src={s.image} alt={s.name} className="h-12 w-12 rounded-full" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-ink">{s.name}</p>
@@ -728,8 +728,8 @@ export default function AnimeDetailPage() {
                 )}
                 {ratings.data.distribution.length > 0 && (
                   <ul className="mt-4 space-y-1.5">
-                    {ratings.data.distribution.map((d) => (
-                      <li key={d.score} className="flex items-center gap-2 text-xs text-ink-2">
+                    {ratings.data.distribution.map((d, idx) => (
+                      <li key={`${d.score}-${idx}`} className="flex items-center gap-2 text-xs text-ink-2">
                         <span className="w-8 shrink-0 text-right">{d.score.toFixed(1)}</span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-raised">
                           <div
@@ -781,8 +781,8 @@ export default function AnimeDetailPage() {
               <EmptyState title="No relations found" />
             ) : (
               <div className="relative border-l-2 border-accent/40 pl-3 ml-2 space-y-3">
-                {relations.data.map((r) => (
-                  <div key={r.anime.id} className="relative">
+                {relations.data.map((r, idx) => (
+                  <div key={`${r.anime.id}-${r.relationType}-${idx}`} className="relative">
                     <div className="absolute -left-[19px] top-4 h-2.5 w-2.5 rounded-full border-2 border-accent bg-background" />
                     <Link
                       to={`/anime/${r.anime.id}`}
@@ -825,8 +825,8 @@ export default function AnimeDetailPage() {
           <EmptyState title="No recommendations yet" />
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5">
-            {recommendations.data.items.map((r) => (
-              <AnimeCardView key={r.id} anime={r} />
+            {recommendations.data.items.map((r, idx) => (
+              <AnimeCardView key={`${r.id}-${idx}`} anime={r} />
             ))}
           </div>
         )}

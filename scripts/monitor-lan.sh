@@ -13,7 +13,7 @@ echo " API   : http://localhost:4000/api/health"
 echo "────────────────────────────────────────"
 if ! curl -sf http://localhost:3000 >/dev/null 2>&1; then
   echo " Dev server not running — starting 'npm run dev'..."
-  (cd /mnt/d/WSL/Project/Ranime && npm run dev > /tmp/ranime-dev.log 2>&1 &)
+  (cd /home/benn/Project/Ranime && npm run dev > /tmp/ranime-dev.log 2>&1 &)
   sleep 2
   echo " Started (log: /tmp/ranime-dev.log)"
 else
