@@ -18,6 +18,7 @@ apps/api/uploads/
 .vercel
 .env*
 .codegraph/
+.codebase-memory/
 PRD.md
 AGENTS.md
 docs/ai/
