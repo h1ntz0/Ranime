@@ -291,9 +291,9 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <div className="mt-8 relative min-h-[360px]">
+      <div className="mt-8 min-h-[360px]">
         <PageLoadingOverlay
-          isLoading={data.isFetching && !data.isPending}
+          isLoading={data.isFetching}
           message="Updating results..."
         />
 
