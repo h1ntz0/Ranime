@@ -17,3 +17,8 @@ logs/
 apps/api/uploads/
 .vercel
 .env*
+.codegraph/
+PRD.md
+AGENTS.md
+docs/ai/
+
