@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import type { User } from '../../database/schema.js'
@@ -5,6 +6,8 @@ import { sendData } from '../../lib/http.js'
 import { AppError } from '../../lib/errors.js'
 import { optionalAuth, setSessionCookie, clearSessionCookie, toPublicUser } from './helpers.js'
 import type { AuthService } from './service.js'
+
+const OAUTH_STATE_COOKIE = 'animelist_oauth_state'
 
 const strongPassword = z
   .string()
@@ -15,7 +18,12 @@ const strongPassword = z
   .refine((v) => /[^A-Za-z0-9]/.test(v), 'Password must include at least one symbol')
 
 const registerSchema = z.object({
-  username: z.string().trim().min(3, 'Username must be at least 3 characters').max(32),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'Username must be at least 3 characters')
+    .max(32)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain alphanumeric characters, underscores, and hyphens'),
   email: z.string().trim().toLowerCase().email('Valid email required'),
   password: strongPassword,
 })
@@ -59,6 +67,16 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       throw new AppError(500, 'GOOGLE_AUTH_NOT_CONFIGURED', 'Google OAuth is not configured')
     }
 
+    const state = crypto.randomBytes(32).toString('hex')
+    const isProd = app.env.NODE_ENV === 'production'
+    reply.setCookie(OAUTH_STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProd,
+      path: '/',
+      maxAge: 60 * 10, // 10 mins
+    })
+
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -66,15 +84,23 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
       scope: 'openid email profile',
       access_type: 'offline',
       prompt: 'select_account',
+      state,
     })
 
     return reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
   })
 
   app.get('/auth/google/callback', async (request, reply) => {
-    const query = request.query as { code?: string; error?: string }
+    const query = request.query as { code?: string; state?: string; error?: string }
+    const savedState = request.cookies[OAUTH_STATE_COOKIE]
+    reply.clearCookie(OAUTH_STATE_COOKIE, { path: '/' })
+
     if (query.error || !query.code) {
       return reply.redirect(`${app.env.FRONTEND_URL}/login?error=google_auth_failed`)
+    }
+
+    if (!savedState || !query.state || savedState !== query.state) {
+      return reply.redirect(`${app.env.FRONTEND_URL}/login?error=invalid_oauth_state`)
     }
 
     const clientId = app.env.GOOGLE_CLIENT_ID

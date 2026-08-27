@@ -9,7 +9,13 @@ import type { ActivityService } from '../activity/service.js'
 
 const updateProfileSchema = z
   .object({
-    username: z.string().trim().min(3).max(32).optional(),
+    username: z
+      .string()
+      .trim()
+      .min(3)
+      .max(32)
+      .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain alphanumeric characters, underscores, and hyphens')
+      .optional(),
     email: z.string().trim().toLowerCase().email().optional(),
   })
   .refine((v) => v.username !== undefined || v.email !== undefined, {
@@ -55,7 +61,10 @@ export async function usersRoutes(
     const stats = statsResult.rows[0]
 
     return sendData(reply, {
-      ...toPublicUser(user),
+      id: user.id,
+      username: user.username,
+      avatarUrl: user.avatarUrl ?? null,
+      createdAt: user.createdAt,
       stats: {
         animeCount: stats?.anime_count ?? 0,
         completedCount: stats?.completed_count ?? 0,
@@ -72,7 +81,7 @@ export async function usersRoutes(
     if (input.username !== undefined) {
       const taken = (
         await app.pool.query<{ exists: boolean }>(
-          `SELECT 1 FROM users WHERE username = $1 AND id <> $2`,
+          `SELECT 1 FROM users WHERE lower(username) = lower($1) AND id <> $2`,
           [input.username, user.id],
         )
       ).rows[0]
@@ -81,7 +90,7 @@ export async function usersRoutes(
     if (input.email !== undefined) {
       const taken = (
         await app.pool.query<{ exists: boolean }>(
-          `SELECT 1 FROM users WHERE email = $1 AND id <> $2`,
+          `SELECT 1 FROM users WHERE lower(email) = lower($1) AND id <> $2`,
           [input.email, user.id],
         )
       ).rows[0]
