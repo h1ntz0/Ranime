@@ -309,7 +309,42 @@ export default function ExplorePage() {
             retry={() => data.refetch()}
           />
         ) : data.data.items.length === 0 ? (
-          <EmptyState title="No results found" hint="Try adjusting your search or filters." icon="search" />
+          <div className="flex flex-col items-center justify-center">
+            <EmptyState
+              title="No results found"
+              hint={(params.page ?? 1) > 1 ? `No anime on page ${params.page}. Try going back.` : "Try adjusting your search or filters."}
+              icon="search"
+            />
+            {(params.page ?? 1) > 1 && (
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => update({ page: 1 })}
+                  className="rounded-md border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink hover:bg-surface-raised transition-colors"
+                >
+                  Go to Page 1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => update({ page: Math.max(1, (params.page ?? 1) - 1) })}
+                  className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent/90 transition-colors"
+                >
+                  Previous Page
+                </button>
+              </div>
+            )}
+            {data.data.total > 0 && (
+              <div className="mt-6 w-full">
+                <Pagination
+                  page={params.page ?? 1}
+                  perPage={data.data.perPage}
+                  total={data.data.total}
+                  hasNextPage={false}
+                  onPage={(p) => update({ page: p })}
+                />
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <p className="mb-4 text-sm text-ink-3">
