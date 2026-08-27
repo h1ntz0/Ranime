@@ -1,6 +1,6 @@
 /**
  * Shared types between web and api.
- * Internal API contract (PRD #83):
+ * Internal API contract:
  *   Success: { data, meta? }
  *   Error:   { error: { code, message } }
  */
