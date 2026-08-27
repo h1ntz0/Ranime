@@ -1,11 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchAiring } from '../lib/api'
 import { Poster } from '../components/Poster'
 import { Pagination } from '../components/Pagination'
 import { Skeleton } from '../components/Skeleton'
 import { EmptyState, ErrorState } from '../components/States'
+import { PageLoadingOverlay } from '../components/ui/PageLoadingOverlay'
 import { countdown, displayTitle, formatDate, formatScore } from '../lib/format'
 import { cn } from '../lib/cn'
 
@@ -114,7 +115,12 @@ export default function AiringPage() {
       )}
 
       {/* Content */}
-      <div className="mt-4">
+      <div className="mt-4 relative min-h-[360px]">
+        <PageLoadingOverlay
+          isLoading={data.isFetching && !data.isPending}
+          message="Updating airing anime..."
+        />
+
         {data.isPending ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

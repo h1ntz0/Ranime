@@ -12,6 +12,7 @@ import { CustomSelect } from '../components/ui/CustomSelect'
 import { Poster } from '../components/Poster'
 import { displayTitle, formatScore } from '../lib/format'
 import { cn } from '../lib/cn'
+import { PageLoadingOverlay } from '../components/ui/PageLoadingOverlay'
 import type { LibraryParams } from '../lib/api'
 import { STATUS_LABELS, type ListStatus } from '../lib/types'
 
@@ -367,7 +368,12 @@ export default function LibraryPage() {
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 relative min-h-[360px]">
+        <PageLoadingOverlay
+          isLoading={data.isFetching && !data.isPending}
+          message="Updating library..."
+        />
+
         {data.isPending ? (
           <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6' : 'space-y-3'}>
             {Array.from({ length: 8 }).map((_, i) => (
