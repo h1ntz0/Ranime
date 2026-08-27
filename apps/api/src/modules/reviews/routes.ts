@@ -7,15 +7,27 @@ import type { ReviewService } from './service.js'
 const idParamSchema = z.object({ id: z.coerce.number().int().positive() })
 const reviewIdParamSchema = z.object({ id: z.string().uuid() })
 
+function sanitizeText(str: string): string {
+  return str.replace(/[<>]/g, '').trim()
+}
+
 const reviewBodySchema = z
   .object({
     rating: z.coerce.number(),
-    title: z.string().trim().min(1, 'Title is required').max(200),
+    title: z
+      .string()
+      .trim()
+      .min(1, 'Title is required')
+      .max(200)
+      .transform(sanitizeText)
+      .refine((v) => v.length > 0, 'Title cannot be empty after sanitization'),
     content: z
       .string()
       .trim()
       .min(20, 'Review must be at least 20 characters')
-      .max(5000, 'Review must be at most 5000 characters'),
+      .max(5000, 'Review must be at most 5000 characters')
+      .transform(sanitizeText)
+      .refine((v) => v.length >= 20, 'Review content must be at least 20 characters'),
     containsSpoiler: z.boolean().optional().default(false),
   })
   .transform((v) => ({ ...v, rating: Number(v.rating.toFixed(1)) }))
@@ -32,19 +44,33 @@ export async function reviewRoutes(
   app: FastifyInstance,
   reviewService: ReviewService,
 ): Promise<void> {
-  app.post('/anime/:id/reviews', { preHandler: app.requireAuth }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
-    const input = reviewBodySchema.parse(request.body)
-    const review = await reviewService.create(request.user!.id, id, input)
-    return reply.code(201).send({ data: review })
-  })
+  app.post(
+    '/anime/:id/reviews',
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const { id } = idParamSchema.parse(request.params)
+      const input = reviewBodySchema.parse(request.body)
+      const review = await reviewService.create(request.user!.id, id, input)
+      return reply.code(201).send({ data: review })
+    },
+  )
 
-  app.put('/reviews/:id', { preHandler: app.requireAuth }, async (request, reply) => {
-    const { id } = reviewIdParamSchema.parse(request.params)
-    const input = reviewBodySchema.parse(request.body)
-    const review = await reviewService.update(request.user!.id, id, input)
-    return sendData(reply, review)
-  })
+  app.put(
+    '/reviews/:id',
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const { id } = reviewIdParamSchema.parse(request.params)
+      const input = reviewBodySchema.parse(request.body)
+      const review = await reviewService.update(request.user!.id, id, input)
+      return sendData(reply, review)
+    },
+  )
 
   app.delete('/reviews/:id', { preHandler: app.requireAuth }, async (request, reply) => {
     const { id } = reviewIdParamSchema.parse(request.params)

@@ -20,6 +20,14 @@ export function errorHandler(app: FastifyInstance): void {
     }
 
     if (error instanceof AniListError) {
+      if (error.statusCode === 404 || error.graphqlErrors?.some((e: any) => typeof e?.message === 'string' && /not found/i.test(e.message))) {
+        return reply.code(404).send({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Anime not found',
+          },
+        })
+      }
       request.log.warn({ error: error.message }, 'AniList upstream error')
       return reply.code(503).send({
         error: {

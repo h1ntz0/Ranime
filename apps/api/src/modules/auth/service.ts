@@ -1,6 +1,6 @@
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
-import { and, eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
@@ -32,7 +32,7 @@ export class AuthService {
     const existing = await this.db
       .select({ username: users.username, email: users.email })
       .from(users)
-      .where(and(eq(users.username, username), eq(users.email, email)))
+      .where(or(eq(users.username, username), eq(users.email, email)))
 
     const hasUsername = existing.some((u) => u.username === username)
     const hasEmail = existing.some((u) => u.email === email)

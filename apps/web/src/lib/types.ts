@@ -181,7 +181,13 @@ export interface AdminStats {
   }
 }
 
-export interface UserProfile extends User {
+export interface UserProfile {
+  id: string
+  username: string
+  avatarUrl: string | null
+  createdAt: string
+  email?: string
+  role?: string
   stats: {
     animeCount: number
     completedCount: number

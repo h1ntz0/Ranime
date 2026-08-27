@@ -142,12 +142,28 @@ describe('auth', () => {
     expect(res.json().error.code).toBe('UNAUTHORIZED')
   })
 
-  it('returns a public profile with stats', async () => {
+  it('returns a public profile with stats without exposing email', async () => {
     const res = await inject('GET', '/api/users/alice')
     expect(res.statusCode).toBe(200)
+    expect(res.json().data.username).toBe('alice')
+    expect(res.json().data.email).toBeUndefined()
     expect(res.json().data.stats.animeCount).toBe(0)
     const missing = await inject('GET', '/api/users/ghost')
     expect(missing.statusCode).toBe(404)
+  })
+
+  it('rejects duplicate registration for username or email individually', async () => {
+    const dupUser = await inject('POST', '/api/auth/register', {
+      body: { username: 'alice', email: 'different_alice@example.com', password: 'Str0ng!Pass123' },
+    })
+    expect(dupUser.statusCode).toBe(409)
+    expect(dupUser.json().error.code).toBe('CONFLICT')
+
+    const dupEmail = await inject('POST', '/api/auth/register', {
+      body: { username: 'different_alice', email: 'alice@example.com', password: 'Str0ng!Pass123' },
+    })
+    expect(dupEmail.statusCode).toBe(409)
+    expect(dupEmail.json().error.code).toBe('CONFLICT')
   })
 
   it('handles google auth redirection and user creation', async () => {
