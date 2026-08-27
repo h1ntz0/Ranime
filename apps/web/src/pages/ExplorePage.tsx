@@ -7,6 +7,7 @@ import { CardGridSkeleton } from '../components/Skeleton'
 import { EmptyState, ErrorState } from '../components/States'
 import { Pagination } from '../components/Pagination'
 import { CustomSelect } from '../components/ui/CustomSelect'
+import { PageLoadingOverlay } from '../components/ui/PageLoadingOverlay'
 import type { ListParams } from '../lib/api'
 
 const SORTS: { value: string; label: string }[] = [
@@ -291,14 +292,10 @@ export default function ExplorePage() {
       )}
 
       <div className="mt-8 relative min-h-[360px]">
-        {data.isFetching && !data.isPending && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/40 backdrop-blur-[2px] transition-all duration-200 animate-in fade-in rounded-xl">
-            <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface/95 px-4 py-2 shadow-lg backdrop-blur-md">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-              <span className="text-xs font-medium tracking-wide text-ink">Updating results...</span>
-            </div>
-          </div>
-        )}
+        <PageLoadingOverlay
+          isLoading={data.isFetching && !data.isPending}
+          message="Updating results..."
+        />
 
         {data.isPending ? (
           <CardGridSkeleton />

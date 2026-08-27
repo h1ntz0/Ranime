@@ -5,6 +5,7 @@ import { AnimeCardView } from '../components/AnimeCard'
 import { Pagination } from '../components/Pagination'
 import { CardGridSkeleton } from '../components/Skeleton'
 import { ErrorState } from '../components/States'
+import { PageLoadingOverlay } from '../components/ui/PageLoadingOverlay'
 
 const CATEGORIES = [
   { value: 'top-rated', label: 'Top Rated' },
@@ -48,7 +49,12 @@ export default function TopPage() {
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 relative min-h-[360px]">
+        <PageLoadingOverlay
+          isLoading={data.isFetching && !data.isPending}
+          message="Loading rankings..."
+        />
+
         {data.isPending ? (
           <CardGridSkeleton count={20} />
         ) : data.isError ? (

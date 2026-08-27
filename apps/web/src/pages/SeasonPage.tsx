@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination'
 import { CardGridSkeleton } from '../components/Skeleton'
 import { ErrorState } from '../components/States'
 import { CustomSelect } from '../components/ui/CustomSelect'
+import { PageLoadingOverlay } from '../components/ui/PageLoadingOverlay'
 
 const SEASONS = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const
 
@@ -66,7 +67,12 @@ export default function SeasonPage() {
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 relative min-h-[360px]">
+        <PageLoadingOverlay
+          isLoading={data.isFetching && !data.isPending}
+          message="Loading season anime..."
+        />
+
         {data.isPending ? (
           <CardGridSkeleton count={20} />
         ) : data.isError ? (
