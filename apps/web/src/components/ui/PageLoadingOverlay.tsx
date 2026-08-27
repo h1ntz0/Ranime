@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { cn } from '../../lib/cn'
 
 interface PageLoadingOverlayProps {
@@ -13,39 +11,36 @@ export function PageLoadingOverlay({
   message = 'Loading...',
   className,
 }: PageLoadingOverlayProps) {
-  useEffect(() => {
-    if (!isLoading) return
-    const prev = document.body.style.pointerEvents
-    document.body.style.pointerEvents = 'none'
-    return () => {
-      document.body.style.pointerEvents = prev
-    }
-  }, [isLoading])
+  if (!isLoading) return null
 
-  if (!isLoading || typeof document === 'undefined') return null
-
-  return createPortal(
+  return (
     <div
       role="status"
       aria-live="polite"
       aria-label={message}
-      style={{ pointerEvents: 'auto' }}
       className={cn(
-        'fixed inset-0 z-[9999] flex items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-200 animate-in fade-in',
+        'fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center bg-black/60 backdrop-blur-xs select-none transition-all',
         className,
       )}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+      }}
     >
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-line-strong/80 bg-surface/95 px-6 py-5 shadow-2xl shadow-black/80 backdrop-blur-md transition-transform animate-in zoom-in-95">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-line-strong/80 bg-surface/95 px-6 py-5 shadow-2xl shadow-black/80 backdrop-blur-md">
         <div className="relative flex h-10 w-10 items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-accent/25 animate-ping opacity-75" />
-          <div className="h-9 w-9 rounded-full border-2 border-line-strong" />
-          <div className="absolute h-9 w-9 rounded-full border-2 border-accent border-t-transparent border-r-transparent animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-line-strong" />
+          <div className="absolute h-8 w-8 rounded-full border-2 border-accent border-t-transparent border-r-transparent animate-spin" />
         </div>
         <span className="text-xs font-semibold tracking-wider text-ink uppercase">
           {message}
         </span>
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }

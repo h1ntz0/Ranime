@@ -17,54 +17,41 @@ export function Pagination({
   if (totalPages <= 1) return null
 
   const handlePageChange = (p: number) => {
+    if (p < 1 || p > totalPages || p === page) return
     onPage(p)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Generate pages window adaptively for mobile & desktop
+  // Generate mobile-safe compact page numbers
   const getPageNumbers = () => {
-    // For small page counts, show all
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1)
     }
 
-    const pages: (number | 'ellipsis')[] = []
-    
-    // Always include page 1
-    pages.push(1)
+    const items: (number | 'ellipsis')[] = []
 
-    if (page > 3) {
-      pages.push('ellipsis')
+    if (page <= 3) {
+      // Near beginning: 1, 2, 3, 4, ..., total
+      items.push(1, 2, 3, 4, 'ellipsis', totalPages)
+    } else if (page >= totalPages - 2) {
+      // Near end: 1, ..., total-3, total-2, total-1, total
+      items.push(1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+    } else {
+      // Middle: 1, ..., page-1, page, page+1, ..., total
+      items.push(1, 'ellipsis', page - 1, page, page + 1, 'ellipsis', totalPages)
     }
 
-    // Dynamic sibling window
-    const start = Math.max(2, page - 1)
-    const end = Math.min(totalPages - 1, page + 1)
-
-    for (let p = start; p <= end; p++) {
-      pages.push(p)
-    }
-
-    if (page < totalPages - 2) {
-      pages.push('ellipsis')
-    }
-
-    // Always include last page
-    if (totalPages > 1) {
-      pages.push(totalPages)
-    }
-
-    return pages
+    return items
   }
 
   const pageItems = getPageNumbers()
 
   const btn =
-    'inline-flex h-9 min-w-9 sm:h-10 sm:min-w-10 items-center justify-center rounded-md border border-line px-2 sm:px-3 text-xs sm:text-sm font-medium text-ink-2 transition-colors hover:border-line-strong hover:bg-surface-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+    'inline-flex h-8 min-w-8 sm:h-9 sm:min-w-9 items-center justify-center rounded-md border border-line px-1.5 sm:px-2.5 text-xs sm:text-sm font-medium text-ink-2 transition-colors hover:border-line-strong hover:bg-surface-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
   const active = 'border-accent/60 bg-accent/15 text-accent font-semibold shadow-xs'
 
   return (
-    <nav aria-label="Pagination" className="mt-8 flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 px-2">
+    <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-1 sm:gap-1.5 px-2 overflow-x-hidden">
       <button
         type="button"
         className={btn}
@@ -72,14 +59,13 @@ export function Pagination({
         onClick={() => handlePageChange(page - 1)}
         aria-label="Previous page"
       >
-        <span aria-hidden="true" className="text-base leading-none">‹</span>
-        <span className="hidden sm:inline ml-1 text-xs">Prev</span>
+        <span aria-hidden="true" className="text-sm font-bold">‹</span>
       </button>
 
       {pageItems.map((item, idx) => {
         if (item === 'ellipsis') {
           return (
-            <span key={`ellipsis-${idx}`} className="px-1 text-xs text-ink-4 select-none">
+            <span key={`ellipsis-${idx}`} className="px-0.5 text-xs text-ink-4 select-none">
               …
             </span>
           )
@@ -89,7 +75,7 @@ export function Pagination({
         return (
           <button
             type="button"
-            key={item}
+            key={`page-${item}`}
             className={cn(btn, isCurrent && active)}
             onClick={() => handlePageChange(item)}
             aria-current={isCurrent ? 'page' : undefined}
@@ -106,9 +92,9 @@ export function Pagination({
         onClick={() => handlePageChange(page + 1)}
         aria-label="Next page"
       >
-        <span className="hidden sm:inline mr-1 text-xs">Next</span>
-        <span aria-hidden="true" className="text-base leading-none">›</span>
+        <span aria-hidden="true" className="text-sm font-bold">›</span>
       </button>
     </nav>
   )
 }
+
