@@ -368,9 +368,9 @@ export default function LibraryPage() {
         </div>
       )}
 
-      <div className="mt-6 relative min-h-[360px]">
+      <div className="mt-6 min-h-[360px]">
         <PageLoadingOverlay
-          isLoading={data.isFetching && !data.isPending}
+          isLoading={data.isFetching}
           message="Updating library..."
         />
 
