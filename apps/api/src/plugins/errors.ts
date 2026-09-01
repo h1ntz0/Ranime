@@ -19,6 +19,15 @@ export function errorHandler(app: FastifyInstance): void {
       })
     }
 
+    if ((error as any).statusCode === 429) {
+      return reply.code(429).send({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests, please try again later.',
+        },
+      })
+    }
+
     if (error instanceof AniListError) {
       if (error.statusCode === 404 || error.graphqlErrors?.some((e: any) => typeof e?.message === 'string' && /not found/i.test(e.message))) {
         return reply.code(404).send({

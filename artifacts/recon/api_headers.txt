@@ -1,0 +1,22 @@
+HTTP/2 200 
+access-control-allow-credentials: true
+age: 0
+cache-control: public, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.anilist.co https://*.googleusercontent.com; connect-src 'self' https://graphql.anilist.co; frame-ancestors 'none';
+content-type: application/json; charset=utf-8
+date: Tue, 01 Sep 2026 14:10:50 GMT
+permissions-policy: camera=(), microphone=(), geolocation=()
+referrer-policy: strict-origin-when-cross-origin
+server: Vercel
+strict-transport-security: max-age=63072000; includeSubDomains; preload
+vary: Origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-ratelimit-limit: 300
+x-ratelimit-remaining: 299
+x-ratelimit-reset: 60
+x-vercel-cache: MISS
+x-vercel-id: sin1::iad1::kvc6c-1788271849312-af4372955ec5
+x-xss-protection: 1; mode=block
+content-length: 127
+
