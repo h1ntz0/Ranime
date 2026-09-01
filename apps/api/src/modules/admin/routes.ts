@@ -197,4 +197,42 @@ export async function adminRoutes(app: FastifyInstance, authService: AuthService
       }),
     )
   })
+
+  app.post('/admin/cleanup-test-users', async (_request, reply) => {
+    const adminEmail = 'arrofi.zein12@gmail.com'
+    const deletedActivities = await app.pool.query(
+      `DELETE FROM user_activity WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
+      [adminEmail],
+    )
+    const deletedReviews = await app.pool.query(
+      `DELETE FROM reviews WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
+      [adminEmail],
+    )
+    const deletedRatings = await app.pool.query(
+      `DELETE FROM ratings WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
+      [adminEmail],
+    )
+    const deletedLists = await app.pool.query(
+      `DELETE FROM user_anime_lists WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
+      [adminEmail],
+    )
+    const deletedTokens = await app.pool.query(
+      `DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
+      [adminEmail],
+    )
+    const deletedUsers = await app.pool.query(
+      `DELETE FROM users WHERE email != $1 RETURNING email`,
+      [adminEmail],
+    )
+
+    return sendData(reply, {
+      deletedUsersCount: deletedUsers.rowCount,
+      deletedUsers: deletedUsers.rows.map((r: any) => r.email),
+      deletedActivitiesCount: deletedActivities.rowCount,
+      deletedReviewsCount: deletedReviews.rowCount,
+      deletedRatingsCount: deletedRatings.rowCount,
+      deletedListsCount: deletedLists.rowCount,
+      deletedTokensCount: deletedTokens.rowCount,
+    })
+  })
 }
