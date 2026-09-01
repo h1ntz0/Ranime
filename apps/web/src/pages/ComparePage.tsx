@@ -154,7 +154,7 @@ export default function ComparePage() {
                     >
                       {displayTitle(animeItem.title)}
                     </Link>
-                    <p className="mt-1 text-xs text-ink-3">{animeItem.format ?? 'TV'} · {animeItem.seasonYear ?? '—'}</p>
+                    <p className="mt-1 text-xs text-ink-3">{animeItem.format ?? 'TV'} · {animeItem.seasonYear ?? '-'}</p>
                     <p className="mt-1 text-xs font-semibold text-warning">
                       ★ {formatScore(animeItem.averageScore)}
                     </p>
@@ -292,7 +292,7 @@ export default function ComparePage() {
                 <td className="p-3 sm:p-4 font-medium text-ink-3">Popularity</td>
                 {items.map((a) => (
                   <td key={a.id} className="p-3 sm:p-4">
-                    #{a.popularity?.toLocaleString() ?? '—'}
+                    #{a.popularity?.toLocaleString() ?? '-'}
                   </td>
                 ))}
               </tr>
@@ -300,7 +300,7 @@ export default function ComparePage() {
                 <td className="p-3 sm:p-4 font-medium text-ink-3">Format</td>
                 {items.map((a) => (
                   <td key={a.id} className="p-3 sm:p-4">
-                    {a.format ?? '—'}
+                    {a.format ?? '-'}
                   </td>
                 ))}
               </tr>
@@ -308,7 +308,7 @@ export default function ComparePage() {
                 <td className="p-3 sm:p-4 font-medium text-ink-3">Episodes / Duration</td>
                 {items.map((a) => (
                   <td key={a.id} className="p-3 sm:p-4">
-                    {a.episodes ? `${a.episodes} eps` : '—'} · {a.duration ? `${a.duration} min` : '—'}
+                    {a.episodes ? `${a.episodes} eps` : '-'} · {a.duration ? `${a.duration} min` : '-'}
                   </td>
                 ))}
               </tr>
@@ -324,7 +324,7 @@ export default function ComparePage() {
                 <td className="p-3 sm:p-4 font-medium text-ink-3">Season / Year</td>
                 {items.map((a) => (
                   <td key={a.id} className="p-3 sm:p-4">
-                    {a.season ?? '—'} {a.seasonYear ?? ''}
+                    {a.season ?? '-'} {a.seasonYear ?? ''}
                   </td>
                 ))}
               </tr>
@@ -349,7 +349,7 @@ export default function ComparePage() {
                 <td className="p-3 sm:p-4 font-medium text-ink-3">Studios</td>
                 {items.map((a) => (
                   <td key={a.id} className="p-3 sm:p-4">
-                    {a.studios.join(', ') || '—'}
+                    {a.studios.join(', ') || '-'}
                   </td>
                 ))}
               </tr>

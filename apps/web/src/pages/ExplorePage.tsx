@@ -79,7 +79,7 @@ function FilterFields({ params, genres, onUpdate }: FilterFieldsProps) {
           ariaLabel="Filter by genre"
           value={params.genre ?? ''}
           onChange={(v) => onUpdate({ genre: v || undefined, page: 1 })}
-          options={genres.map((g) => ({ value: g.name, label: g.name }))}
+          options={[{ value: '', label: 'Any' }, ...genres.map((g) => ({ value: g.name, label: g.name }))]}
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-ink-3">
@@ -88,7 +88,7 @@ function FilterFields({ params, genres, onUpdate }: FilterFieldsProps) {
           ariaLabel="Filter by year"
           value={params.year !== undefined ? String(params.year) : ''}
           onChange={(v) => onUpdate({ year: v ? Number(v) : undefined, page: 1 })}
-          options={YEARS}
+          options={[{ value: '', label: 'Any' }, ...YEARS]}
           placeholder="Any"
         />
       </label>

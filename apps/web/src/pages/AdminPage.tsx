@@ -133,7 +133,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* metrics — bespoke mobile-first: 1 col on <640 to prevent melebar, 2 cols on sm */}
+      {/* metrics: mobile-first 1 col on <640 to prevent overflow, 2 cols on sm */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-7">
         <MetricCard label="Total users" value={s.overview.totalUsers} icon={<span className="text-[11px]">◎</span>} />
         <MetricCard label="Admins" value={s.overview.totalAdmins} sub="privileged" icon={<span className="text-[11px]">◆</span>} />
@@ -220,7 +220,7 @@ export default function AdminPage() {
             />
           </div>
 
-          {/* Mobile: cards, Desktop: table — bespoke, no AI slop */}
+          {/* Mobile: cards, Desktop: table */}
           <div className="mt-3 grid gap-2 sm:hidden">
             {usersQ.data?.items.map((u) => (
               <div key={u.id} className="flex flex-col gap-2 rounded-md border border-line bg-surface-raised/40 p-3">

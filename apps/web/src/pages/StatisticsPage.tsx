@@ -117,7 +117,7 @@ export default function StatisticsPage() {
             <StatCard label="Episodes watched" value={s.episodesWatched} />
             <StatCard
               label="Average rating"
-              value={s.averageRating !== null ? s.averageRating.toFixed(2) : '—'}
+              value={s.averageRating !== null ? s.averageRating.toFixed(2) : '-'}
               suffix={s.averageRating !== null ? '/ 10' : undefined}
             />
             <StatCard label="Reviews written" value={s.reviews} />
@@ -206,7 +206,7 @@ export default function StatisticsPage() {
                     </div>
                     <div className="rounded-sm bg-background/60 p-2.5">
                       <p className="text-2xl font-black text-warning">
-                        {s.averageRating !== null ? s.averageRating.toFixed(1) : '—'}★
+                        {s.averageRating !== null ? s.averageRating.toFixed(1) : '-'}★
                       </p>
                       <p className="text-[10px] uppercase tracking-wider text-ink-3">Avg Score</p>
                     </div>

@@ -100,7 +100,7 @@ export function CommandPalette() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{displayTitle(anime.title)}</p>
                     <p className="text-xs text-ink-3">
-                      {anime.format} · {anime.seasonYear ?? '—'}
+                      {anime.format} · {anime.seasonYear ?? '-'}
                     </p>
                   </div>
                   {anime.averageScore && (
