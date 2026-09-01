@@ -12,7 +12,7 @@ export function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-line py-6 pb-24 text-center text-xs text-ink-4 lg:pb-6">
-        Ranime — data synced from AniList. Ratings and reviews are community-driven.
+        Ranime: data synced from AniList. Ratings and reviews are community-driven.
       </footer>
       <MobileBottomNav />
     </div>

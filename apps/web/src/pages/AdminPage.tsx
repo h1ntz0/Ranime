@@ -148,7 +148,7 @@ export default function AdminPage() {
       <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.35fr_0.85fr]">
         <div className="min-w-0 rounded-md border border-line bg-surface/40 p-3 sm:p-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-semibold tracking-tight text-ink sm:text-sm">User growth — 14 days</h2>
+            <h2 className="text-xs font-semibold tracking-tight text-ink sm:text-sm">User growth (14 days)</h2>
             <span className="shrink-0 text-[11px] text-ink-4 sm:text-xs">{s.userGrowth.length} buckets</span>
           </div>
           <div className="mt-3 sm:mt-4">
@@ -199,7 +199,7 @@ export default function AdminPage() {
                   <p className="flex flex-wrap gap-x-1.5 text-sm leading-snug text-ink-2">
                     <span className="font-medium text-ink">{a.username}</span>
                     <span className="break-words text-ink-3">{a.type.toLowerCase()}</span>
-                    {a.animeTitle && <span className="min-w-0 break-words text-ink-3">— {a.animeTitle}</span>}
+                    {a.animeTitle && <span className="min-w-0 break-words text-ink-3">({a.animeTitle})</span>}
                   </p>
                   <p className="mt-0.5 text-xs text-ink-4">{new Date(a.createdAt).toLocaleString()}</p>
                 </div>

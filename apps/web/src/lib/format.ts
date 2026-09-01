@@ -7,14 +7,14 @@ export function displayTitle(title: {
 }
 
 export function formatScore(score: number | null): string {
-  if (score === null || score === undefined) return '—'
+  if (score === null || score === undefined) return '-'
   return (score / 10).toFixed(1)
 }
 
 export function formatDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
+  if (Number.isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
