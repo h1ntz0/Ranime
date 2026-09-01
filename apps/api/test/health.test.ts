@@ -23,7 +23,7 @@ describe('GET /api/health', () => {
         ANILIST_API_URL: 'https://graphql.anilist.co',
         JWT_SECRET: 'test-secret-with-enough-length',
         FRONTEND_URL: 'http://localhost:3000',
-        SMTP_FROM: 'Ranime <noreply@ranime.app>',
+        SMTP_FROM: 'Ranime <onboarding@resend.dev>',
       },
       pool: fakePool(async () => ({ rows: [{ '?column?': 1 }] })),
       logger: false,
@@ -53,7 +53,7 @@ describe('GET /api/health', () => {
         ANILIST_API_URL: 'https://graphql.anilist.co',
         JWT_SECRET: 'test-secret-with-enough-length',
         FRONTEND_URL: 'http://localhost:3000',
-        SMTP_FROM: 'Ranime <noreply@ranime.app>',
+        SMTP_FROM: 'Ranime <onboarding@resend.dev>',
       },
       pool: fakePool(async () => {
         throw new Error('connection refused')
@@ -85,7 +85,7 @@ describe('unknown routes', () => {
         ANILIST_API_URL: 'https://graphql.anilist.co',
         JWT_SECRET: 'test-secret-with-enough-length',
         FRONTEND_URL: 'http://localhost:3000',
-        SMTP_FROM: 'Ranime <noreply@ranime.app>',
+        SMTP_FROM: 'Ranime <onboarding@resend.dev>',
       },
       pool: fakePool(async () => ({ rows: [] })),
       logger: false,

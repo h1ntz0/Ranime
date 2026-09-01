@@ -19,7 +19,7 @@ describe('parseEnv', () => {
       ANILIST_API_URL: 'https://graphql.anilist.co',
       JWT_SECRET: 'a-secret-that-is-long-enough',
       FRONTEND_URL: 'http://localhost:3000',
-      SMTP_FROM: 'Ranime <noreply@ranime.app>',
+      SMTP_FROM: 'Ranime <onboarding@resend.dev>',
     })
   })
 
