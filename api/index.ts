@@ -57,7 +57,8 @@ async function ensureMigrations() {
 
 async function getApp() {
   if (!cachedApp) {
-    await ensureMigrations()
+    // Run migrations non-blocking in background or on first init
+    ensureMigrations().catch(() => {})
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
