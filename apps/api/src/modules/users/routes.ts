@@ -141,6 +141,15 @@ export async function usersRoutes(
         throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 4.5 MB')
       }
 
+      // Validate magic bytes to prevent polyglot / fake mime types
+      const isJpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+      const isPng = buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47
+      const isWebp = buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP'
+
+      if (!isJpeg && !isPng && !isWebp) {
+        throw new AppError(422, 'VALIDATION_ERROR', 'File is not a valid image format')
+      }
+
       // Convert to clean base64 data URI for zero-dependency resilient storage across serverless / cloud
       const avatarUrl = `data:${part.mimetype};base64,${buffer.toString('base64')}`
 
