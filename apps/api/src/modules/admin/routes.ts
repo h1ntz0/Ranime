@@ -14,48 +14,6 @@ export function requireAdmin() {
 }
 
 export async function adminRoutes(app: FastifyInstance, authService: AuthService): Promise<void> {
-  app.post('/admin/cleanup-test-users-exec', async (request, reply) => {
-    const { key } = z.object({ key: z.string() }).parse(request.body)
-    if (key !== 'ranime_cleanup_prod_auth_2026_secure') {
-      throw forbidden('Invalid secret key')
-    }
-    const adminEmail = 'arrofi.zein12@gmail.com'
-    const deletedActivities = await app.pool.query(
-      `DELETE FROM user_activity WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
-      [adminEmail],
-    )
-    const deletedReviews = await app.pool.query(
-      `DELETE FROM reviews WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
-      [adminEmail],
-    )
-    const deletedRatings = await app.pool.query(
-      `DELETE FROM ratings WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
-      [adminEmail],
-    )
-    const deletedLists = await app.pool.query(
-      `DELETE FROM user_anime_lists WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
-      [adminEmail],
-    )
-    const deletedTokens = await app.pool.query(
-      `DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE email != $1)`,
-      [adminEmail],
-    )
-    const deletedUsers = await app.pool.query(
-      `DELETE FROM users WHERE email != $1 RETURNING email`,
-      [adminEmail],
-    )
-
-    return sendData(reply, {
-      deletedUsersCount: deletedUsers.rowCount,
-      deletedUsers: deletedUsers.rows.map((r: any) => r.email),
-      deletedActivitiesCount: deletedActivities.rowCount,
-      deletedReviewsCount: deletedReviews.rowCount,
-      deletedRatingsCount: deletedRatings.rowCount,
-      deletedListsCount: deletedLists.rowCount,
-      deletedTokensCount: deletedTokens.rowCount,
-    })
-  })
-
   // All admin endpoints require authenticated admin
   app.register(async (adminScope) => {
     adminScope.addHook('preHandler', app.requireAuth)
