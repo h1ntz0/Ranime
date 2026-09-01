@@ -61,7 +61,7 @@ export function ReviewCard({
           onClick={() => setRevealed(true)}
           className="mt-2 w-full rounded-md border border-dashed border-amber-900 bg-amber-950/20 px-3 py-3 text-sm text-amber-300 transition-colors hover:bg-amber-950/40"
         >
-          This review contains spoilers — click to show
+          This review contains spoilers. Click to show.
         </button>
       ) : (
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-2">{review.content}</p>
