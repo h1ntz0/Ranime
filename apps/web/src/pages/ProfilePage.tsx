@@ -71,7 +71,7 @@ export default function ProfilePage() {
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Anime in library" value={p.stats.animeCount} />
         <StatCard label="Completed" value={p.stats.completedCount} />
-        <StatCard label="Average rating" value={p.stats.averageRating !== null ? p.stats.averageRating.toFixed(2) : '—'} />
+        <StatCard label="Average rating" value={p.stats.averageRating !== null ? p.stats.averageRating.toFixed(2) : '-'} />
         <StatCard label="Episodes watched" value={p.stats.episodesWatched} />
       </div>
 

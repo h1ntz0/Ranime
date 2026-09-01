@@ -55,7 +55,7 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
       })
       .onConflictDoNothing({ target: users.email })
 
-    // Ensure dedicated admin account exists — strong password
+    // Ensure dedicated admin account exists: strong password
     const adminHash = await hash('REDACTED-PASSWORD')
     await client
       .insert(users)

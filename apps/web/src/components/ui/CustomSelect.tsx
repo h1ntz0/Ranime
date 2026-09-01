@@ -115,7 +115,7 @@ export function CustomSelect({
           triggerClassName,
         )}
       >
-        <span className={cn('flex min-w-0 flex-1 items-center gap-2', !selected && 'text-ink-3')}>
+        <span className={cn('flex min-w-0 flex-1 items-center gap-2 text-ink', !selected && 'text-ink')}>
           {renderTriggerValue ? (
             renderTriggerValue(selected)
           ) : (

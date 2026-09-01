@@ -363,7 +363,7 @@ export function Header() {
                   </div>
                 </div>
 
-                {/* User fast actions — 2 cols, bespoke */}
+                {/* User fast actions: 2 cols */}
                 <div className="mt-2.5 grid grid-cols-2 gap-1.5 pt-2.5 border-t border-line/60">
                   <NavLink
                     to="/library"
@@ -410,7 +410,7 @@ export function Header() {
                       Command Center
                     </NavLink>
                   ) : (
-                    <div className="rounded-md border border-dashed border-line/40 px-2.5 py-2 text-center text-[11px] text-ink-4">—</div>
+                    <div className="rounded-md border border-dashed border-line/40 px-2.5 py-2 text-center text-[11px] text-ink-4">-</div>
                   )}
                 </div>
               </div>

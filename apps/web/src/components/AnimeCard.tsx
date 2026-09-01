@@ -42,7 +42,7 @@ export function AnimeCardView({ anime }: { anime: AnimeCard }) {
                 {formatScore(anime.averageScore)}★
               </span>
             ) : (
-              <span className="rounded-sm bg-background/70 px-1.5 py-0.5 text-xs text-ink-2">—</span>
+              <span className="rounded-sm bg-background/70 px-1.5 py-0.5 text-xs text-ink-2">-</span>
             )}
             <span className="text-[11px] font-medium text-ink">{anime.format ?? ''}</span>
           </div>

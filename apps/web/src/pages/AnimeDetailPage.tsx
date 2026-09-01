@@ -557,13 +557,13 @@ export default function AnimeDetailPage() {
 
           <Section title="Information">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-              <InfoItem label="Format" value={anime.format ?? '—'} />
-              <InfoItem label="Episodes" value={anime.episodes ?? '—'} />
-              <InfoItem label="Duration" value={anime.duration ? `${anime.duration} min/ep` : '—'} />
+              <InfoItem label="Format" value={anime.format ?? '-'} />
+              <InfoItem label="Episodes" value={anime.episodes ?? '-'} />
+              <InfoItem label="Duration" value={anime.duration ? `${anime.duration} min/ep` : '-'} />
               <InfoItem label="Status" value={formatStatus(anime.status)} />
               <InfoItem label="Start date" value={formatDate(anime.startDate)} />
               <InfoItem label="End date" value={formatDate(anime.endDate)} />
-              <InfoItem label="Season" value={formatSeason(anime.season, anime.seasonYear) || '—'} />
+              <InfoItem label="Season" value={formatSeason(anime.season, anime.seasonYear) || '-'} />
               <InfoItem
                 label="Studios"
                 value={
@@ -580,21 +580,21 @@ export default function AnimeDetailPage() {
                       ))}
                     </span>
                   ) : (
-                    '—'
+                    '-'
                   )
                 }
               />
-              <InfoItem label="Source" value={anime.source ? formatStatus(anime.source) : '—'} />
-              <InfoItem label="Country" value={anime.country ?? '—'} />
+              <InfoItem label="Source" value={anime.source ? formatStatus(anime.source) : '-'} />
+              <InfoItem label="Country" value={anime.country ?? '-'} />
               <InfoItem
                 label="Community rating"
                 value={
                   ratings.data?.count
-                    ? `${ratings.data.average?.toFixed(2) ?? '—'} (${ratings.data.count} votes)`
+                    ? `${ratings.data.average?.toFixed(2) ?? '-'} (${ratings.data.count} votes)`
                     : 'No community ratings yet'
                 }
               />
-              <InfoItem label="Genres" value={anime.genres.length ? anime.genres.join(', ') : '—'} />
+              <InfoItem label="Genres" value={anime.genres.length ? anime.genres.join(', ') : '-'} />
             </dl>
           </Section>
 
@@ -716,7 +716,7 @@ export default function AnimeDetailPage() {
                   <>
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-bold tracking-tight text-warning">
-                        {ratings.data.average?.toFixed(1) ?? '—'}
+                        {ratings.data.average?.toFixed(1) ?? '-'}
                       </span>
                       <svg className="h-4 w-4 self-center text-warning" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.077 10.1c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z" />
