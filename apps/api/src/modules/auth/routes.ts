@@ -33,6 +33,20 @@ const loginSchema = z.object({
   password: z.string().min(1).max(200),
 })
 
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Valid email required'),
+})
+
+const verifyOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Valid email required'),
+  otp: z.string().trim().length(6, 'OTP must be 6 digits'),
+})
+
+const resetPasswordSchema = z.object({
+  resetToken: z.string().trim().min(10, 'Reset token required'),
+  password: strongPassword,
+})
+
 export async function authRoutes(app: FastifyInstance, authService: AuthService): Promise<void> {
   app.post(
     '/auth/register',
@@ -179,6 +193,39 @@ export async function authRoutes(app: FastifyInstance, authService: AuthService)
     clearSessionCookie(reply, app.env)
     return reply.code(204).send()
   })
+
+  app.post(
+    '/auth/forgot-password',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = forgotPasswordSchema.parse(request.body)
+      const res = await authService.requestPasswordResetOtp(input.email)
+      return sendData(reply, res)
+    },
+  )
+
+  app.post(
+    '/auth/verify-otp',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = verifyOtpSchema.parse(request.body)
+      const res = await authService.verifyPasswordResetOtp(input.email, input.otp)
+      return sendData(reply, res)
+    },
+  )
+
+  app.post(
+    '/auth/reset-password',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const input = resetPasswordSchema.parse(request.body)
+      const res = await authService.resetPasswordWithToken({
+        resetToken: input.resetToken,
+        newPassword: input.password,
+      })
+      return sendData(reply, res)
+    },
+  )
 
   app.get('/auth/me', { preHandler: optionalAuth(authService) }, async (request, reply) => {
     const user = request.user

@@ -12,6 +12,8 @@ import StudioDetailPage from './pages/StudioDetailPage'
 import AiringPage from './pages/AiringPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import WatchlistPage from './pages/WatchlistPage'
 import LibraryPage from './pages/LibraryPage'
 import StatisticsPage from './pages/StatisticsPage'
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="/airing" element={<AiringPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/watchlist"
           element={

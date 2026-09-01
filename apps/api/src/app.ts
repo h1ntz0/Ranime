@@ -26,6 +26,7 @@ import { RatingService } from './modules/ratings/service.js'
 import { ReviewService } from './modules/reviews/service.js'
 import { StatisticsService } from './modules/statistics/service.js'
 import { ActivityService } from './modules/activity/service.js'
+import { EmailService } from './services/email.service.js'
 import { errorHandler } from './plugins/errors.js'
 import { AnimeService } from './services/anime.service.js'
 import { AniListClient } from './integrations/anilist/client.js'
@@ -63,9 +64,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         pool,
       }),
   )
+  const emailService = new EmailService(env)
   const authService =
     options.authService ??
-    new AuthService({ pool, jwtSecret: env.JWT_SECRET, tokenTtl: '30d' })
+    new AuthService({ pool, jwtSecret: env.JWT_SECRET, tokenTtl: '30d', emailService })
   app.decorate('authService', authService)
   app.decorate('requireAuth', (request: FastifyRequest, reply: FastifyReply) =>
     requireAuth(authService)(request, reply),

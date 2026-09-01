@@ -156,6 +156,27 @@ export function logout(): Promise<void> {
   return request('/auth/logout', { method: 'POST' })
 }
 
+export function requestForgotPasswordOtp(email: string): Promise<{ success: boolean; message: string }> {
+  return request('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export function verifyForgotPasswordOtp(input: { email: string; otp: string }): Promise<{ resetToken: string }> {
+  return request('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function resetPassword(input: { resetToken: string; password: string }): Promise<{ success: boolean }> {
+  return request('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 /* ---------- users ---------- */
 
 export function fetchUserProfile(username: string, signal?: AbortSignal): Promise<UserProfile> {

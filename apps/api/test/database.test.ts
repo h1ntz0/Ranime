@@ -90,6 +90,7 @@ describe('database migration (from empty)', () => {
         'anime_studios',
         'characters',
         'genres',
+        'password_reset_tokens',
         'ratings',
         'reviews',
         'staff',
