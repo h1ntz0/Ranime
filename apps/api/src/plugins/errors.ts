@@ -19,7 +19,7 @@ export function errorHandler(app: FastifyInstance): void {
       })
     }
 
-    if ((error as any).statusCode === 429) {
+    if ((error as any).statusCode === 429 || (error as any).code === 'FST_ERR_RATE_LIMIT') {
       return reply.code(429).send({
         error: {
           code: 'RATE_LIMIT_EXCEEDED',

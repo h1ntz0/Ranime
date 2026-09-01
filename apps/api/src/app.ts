@@ -87,6 +87,18 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   errorHandler(app)
 
+  await app.register(rateLimit, {
+    global: true,
+    max: 300,
+    timeWindow: '1 minute',
+    errorResponseBuilder: () => ({
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests, please try again later.',
+      },
+    }),
+  })
+
   app.addHook('onSend', async (_request, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff')
     reply.header('X-Frame-Options', 'DENY')
@@ -127,17 +139,6 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.register(staticFiles, {
     root: UPLOAD_ROOT,
     prefix: '/uploads/',
-  })
-  app.register(rateLimit, {
-    global: true,
-    max: 300,
-    timeWindow: '1 minute',
-    errorResponseBuilder: () => ({
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests, please try again later.',
-      },
-    }),
   })
 
   app.setNotFoundHandler((request, reply) => {
