@@ -1,11 +1,13 @@
+import crypto from 'node:crypto'
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
-import { eq, or } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, or } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { users, type User } from '../../database/schema.js'
+import { passwordResetTokens, users, type User } from '../../database/schema.js'
 import { AppError, unauthorized } from '../../lib/errors.js'
+import type { EmailSender } from '../../services/email.service.js'
 
 export interface AuthTokens {
   sign(userId: string): string
@@ -13,6 +15,7 @@ export interface AuthTokens {
 
 export class AuthService {
   private db: NodePgDatabase<Record<string, unknown>>
+  private emailService?: EmailSender
 
   constructor(
     private options: {
@@ -20,9 +23,11 @@ export class AuthService {
       db?: NodePgDatabase<Record<string, unknown>>
       jwtSecret: string
       tokenTtl: string
+      emailService?: EmailSender
     },
   ) {
     this.db = options.db ?? drizzle(options.pool)
+    this.emailService = options.emailService
   }
 
   async register(input: { username: string; email: string; password: string }): Promise<User> {
@@ -170,5 +175,111 @@ export class AuthService {
     } catch {
       return null
     }
+  }
+
+  async requestPasswordResetOtp(email: string): Promise<{ success: boolean; message: string }> {
+    const cleanEmail = email.trim().toLowerCase()
+    const [user] = await this.db.select().from(users).where(eq(users.email, cleanEmail))
+
+    // Always return generic success to avoid email enumeration
+    if (!user) {
+      return { success: true, message: 'If that email exists, an OTP code has been sent.' }
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex')
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+
+    // Invalidate prior unused OTPs for this user
+    await this.db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(and(eq(passwordResetTokens.userId, user.id), isNull(passwordResetTokens.usedAt)))
+
+    await this.db.insert(passwordResetTokens).values({
+      userId: user.id,
+      email: cleanEmail,
+      otpHash,
+      expiresAt,
+    })
+
+    if (this.emailService && 'sendPasswordResetOtp' in this.emailService) {
+      await (this.emailService as any).sendPasswordResetOtp(cleanEmail, otp)
+    }
+
+    return { success: true, message: 'If that email exists, an OTP code has been sent.' }
+  }
+
+  async verifyPasswordResetOtp(
+    email: string,
+    otp: string,
+  ): Promise<{ resetToken: string }> {
+    const cleanEmail = email.trim().toLowerCase()
+    const otpHash = crypto.createHash('sha256').update(otp.trim()).digest('hex')
+    const now = new Date()
+
+    const [tokenRow] = await this.db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.email, cleanEmail),
+          eq(passwordResetTokens.otpHash, otpHash),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, now),
+        ),
+      )
+      .orderBy(desc(passwordResetTokens.createdAt))
+      .limit(1)
+
+    if (!tokenRow) {
+      throw new AppError(400, 'INVALID_OTP', 'Invalid or expired verification code')
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    await this.db
+      .update(passwordResetTokens)
+      .set({ resetToken })
+      .where(eq(passwordResetTokens.id, tokenRow.id))
+
+    return { resetToken }
+  }
+
+  async resetPasswordWithToken(input: {
+    resetToken: string
+    newPassword: string
+  }): Promise<{ success: boolean }> {
+    const now = new Date()
+    const [tokenRow] = await this.db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.resetToken, input.resetToken),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, now),
+        ),
+      )
+      .limit(1)
+
+    if (!tokenRow) {
+      throw new AppError(400, 'INVALID_RESET_TOKEN', 'Invalid or expired reset session')
+    }
+
+    const passwordHash = await argon2.hash(input.newPassword, { type: argon2.argon2id })
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({ passwordHash, updatedAt: new Date() })
+        .where(eq(users.id, tokenRow.userId))
+
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetTokens.id, tokenRow.id))
+    })
+
+    return { success: true }
   }
 }

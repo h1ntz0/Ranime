@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="mt-6">
         <a
           href="/api/auth/google"
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-lg border border-surface-3 bg-surface-2 px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -72,7 +72,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative my-6 flex items-center justify-center">
-        <div className="w-full border-t border-surface-3" />
+        <div className="w-full border-t border-line" />
         <span className="bg-background px-3 text-xs uppercase tracking-wider text-ink-4">Or</span>
       </div>
 
@@ -97,6 +97,14 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-ink-3 hover:text-accent transition-colors"
+          >
+            Lupa password?
+          </Link>
+        </div>
         {error ? (
           <p role="alert" className="text-sm text-danger">
             {error}

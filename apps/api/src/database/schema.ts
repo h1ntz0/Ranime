@@ -352,11 +352,33 @@ export const userActivity = pgTable(
       .notNull()
       .references(() => anime.id, { onDelete: 'cascade' }),
     reviewId: uuid('review_id').references(() => reviews.id, { onDelete: 'cascade' }),
-    payload: jsonb('payload'),
+    payload: jsonb('payload').$type<Record<string, unknown>>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('user_activity_user_id_created_at_idx').on(t.userId, t.createdAt),
+    index('user_activity_anime_id_idx').on(t.animeId),
+  ],
+)
+
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    otpHash: text('otp_hash').notNull(),
+    resetToken: text('reset_token'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('password_reset_tokens_user_id_idx').on(t.userId),
+    index('password_reset_tokens_email_idx').on(t.email),
+    index('password_reset_tokens_reset_token_idx').on(t.resetToken),
   ],
 )
 
@@ -443,6 +465,9 @@ export const userActivityRelations = relations(userActivity, ({ one }) => ({
   anime: one(anime, { fields: [userActivity.animeId], references: [anime.id] }),
   review: one(reviews, { fields: [userActivity.reviewId], references: [reviews.id] }),
 }))
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, { fields: [passwordResetTokens.userId], references: [users.id] }),
+}))
 
 /* ---------- Types ---------- */
 
@@ -456,3 +481,4 @@ export type UserAnimeList = typeof userAnimeLists.$inferSelect
 export type Rating = typeof ratings.$inferSelect
 export type Review = typeof reviews.$inferSelect
 export type UserActivity = typeof userActivity.$inferSelect
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect
