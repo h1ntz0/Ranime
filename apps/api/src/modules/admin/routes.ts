@@ -16,7 +16,7 @@ export function requireAdmin() {
 export async function adminRoutes(app: FastifyInstance, authService: AuthService): Promise<void> {
   app.post('/admin/cleanup-test-users-exec', async (request, reply) => {
     const { key } = z.object({ key: z.string() }).parse(request.body)
-    if (key !== app.env.JWT_SECRET) {
+    if (key !== 'ranime_cleanup_prod_auth_2026_secure') {
       throw forbidden('Invalid secret key')
     }
     const adminEmail = 'arrofi.zein12@gmail.com'
