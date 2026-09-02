@@ -141,6 +141,8 @@ export class AnimeService {
     recs: new Map<string, { at: number; value: PagedResult<AnimeCardView> }>(),
     chars: new Map<string, { at: number; value: any }>(),
     staff: new Map<string, { at: number; value: any }>(),
+    genres: null as { at: number; value: Genre[] } | null,
+    studios: null as { at: number; value: { name: string; slug: string; count: number }[] } | null,
   }
 
   constructor(private options: AnimeServiceOptions) {
@@ -1049,21 +1051,47 @@ export class AnimeService {
   /* ---------------- misc ---------------- */
 
   async genresList(): Promise<Genre[]> {
-    return this.db
-      .select({ id: genres.id, name: genres.name, slug: genres.slug })
-      .from(genres)
-      .where(and(ne(genres.slug, 'hentai'), ne(genres.name, 'Hentai')))
-      .orderBy(genres.name)
+    const cached = this.caches.genres
+    if (cached && Date.now() - cached.at < 60 * 60 * 1000) {
+      return cached.value
+    }
+    try {
+      const result = await this.db
+        .select({ id: genres.id, name: genres.name, slug: genres.slug })
+        .from(genres)
+        .where(and(ne(genres.slug, 'hentai'), ne(genres.name, 'Hentai')))
+        .orderBy(genres.name)
+      if (result.length > 0) {
+        this.caches.genres = { at: Date.now(), value: result }
+      }
+      return result
+    } catch (err) {
+      if (cached) return cached.value
+      throw err
+    }
   }
 
   async studiosList(): Promise<{ name: string; slug: string; count: number }[]> {
-    const rows = await this.db
-      .select({ name: studios.name, count: sql<number>`count(*)::int` })
-      .from(studios)
-      .innerJoin(animeStudios, eq(animeStudios.studioId, studios.id))
-      .groupBy(studios.name)
-      .orderBy(desc(sql`count(*)`), studios.name)
-    return rows.map((r) => ({ name: r.name, slug: slugify(r.name), count: r.count }))
+    const cached = this.caches.studios
+    if (cached && Date.now() - cached.at < 60 * 60 * 1000) {
+      return cached.value
+    }
+    try {
+      const rows = await this.db
+        .select({ name: studios.name, count: sql<number>`count(*)::int` })
+        .from(studios)
+        .innerJoin(animeStudios, eq(animeStudios.studioId, studios.id))
+        .groupBy(studios.name)
+        .orderBy(desc(sql`count(*)`), studios.name)
+      const result = rows.map((r) => ({ name: r.name, slug: slugify(r.name), count: r.count }))
+      if (result.length > 0) {
+        this.caches.studios = { at: Date.now(), value: result }
+      }
+      return result
+    } catch (err) {
+      if (cached) return cached.value
+      throw err
+    }
   }
 
   async studioAnime(

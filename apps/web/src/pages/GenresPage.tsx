@@ -5,8 +5,20 @@ import { CardGridSkeleton } from '../components/Skeleton'
 import { ErrorState } from '../components/States'
 
 export default function GenresPage() {
-  const genres = useQuery({ queryKey: ['genres'], queryFn: ({ signal }) => fetchGenres(signal) })
-  const studios = useQuery({ queryKey: ['studios'], queryFn: ({ signal }) => fetchStudios(signal) })
+  const genres = useQuery({
+    queryKey: ['genres'],
+    queryFn: ({ signal }) => fetchGenres(signal),
+    staleTime: 60 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+  })
+  const studios = useQuery({
+    queryKey: ['studios'],
+    queryFn: ({ signal }) => fetchStudios(signal),
+    staleTime: 60 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+  })
 
   return (
     <div>

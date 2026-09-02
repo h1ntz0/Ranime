@@ -22,8 +22,12 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
     connectionString: cleanUrl,
     max: isCloud ? 2 : 10,
     idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: isCloud ? 15000 : 5000,
     ...(isCloud ? { ssl: { rejectUnauthorized: false } } : {}),
+  })
+
+  pool.on('error', (err) => {
+    console.error('Unexpected idle pg client error:', err)
   })
 
   if (shouldReuse) {
