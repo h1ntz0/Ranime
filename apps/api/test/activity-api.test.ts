@@ -124,6 +124,7 @@ describe('user activity feed', () => {
 
   it('records RATED with the score payload', async () => {
     await inject('POST', '/api/anime/910001/rating', { token, body: { score: 8 } })
+    await new Promise((r) => setTimeout(r, 10))
     await inject('POST', '/api/anime/910001/rating', { token, body: { score: 9 } })
     const activity = await inject('GET', '/api/users/flowuser2/activity')
     expect(activity.json().data.items[0]).toMatchObject({
