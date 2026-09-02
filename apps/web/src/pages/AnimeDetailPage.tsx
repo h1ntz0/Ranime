@@ -86,8 +86,12 @@ function ReviewForm({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!title.trim()) {
+      setError('Review title is required.')
+      return
+    }
     if (content.trim().length < 20) {
-      setError('Review must be at least 20 characters.')
+      setError(`Review must be at least 20 characters (current: ${content.trim().length}).`)
       return
     }
     setError('')
@@ -115,22 +119,28 @@ function ReviewForm({
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Review title"
+        placeholder="Review title (required)"
         maxLength={200}
+        required
         className="mt-3 w-full rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-3 focus:border-accent focus:outline-none"
       />
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Write your review (minimum 20 characters)…"
+        placeholder="Write your review (minimum 20 characters)..."
         rows={5}
         maxLength={5000}
+        required
         className="mt-3 w-full resize-y rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-3 focus:border-accent focus:outline-none"
       />
+      <div className="mt-1 flex items-center justify-between text-xs text-ink-3">
+        <span>{content.trim().length < 20 ? `${content.trim().length}/20 minimum characters` : `${content.trim().length} characters`}</span>
+        <span>Max 5,000</span>
+      </div>
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       <div className="mt-3 flex gap-3">
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Saving…' : initial ? 'Update review' : 'Publish review'}
+          {submitting ? 'Saving...' : initial ? 'Update review' : 'Publish review'}
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>
@@ -861,12 +871,18 @@ export default function AnimeDetailPage() {
             )}
           </div>
         ) : (
-          <p className="mb-6 text-sm text-ink-3">
-            <Link to={`/login?next=${encodeURIComponent(`/anime/${animeId}`)}`} className="text-accent underline underline-offset-2 hover:text-accent-strong">
-              Login
-            </Link>{' '}
-            to write a review.
-          </p>
+          <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-md border border-line bg-surface/30 p-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-sm font-medium text-ink">Want to write a review?</p>
+              <p className="text-xs text-ink-3">Log in to your account to share your rating and review with the community.</p>
+            </div>
+            <Link
+              to={`/login?next=${encodeURIComponent(`/anime/${animeId}`)}`}
+              className="inline-flex shrink-0 items-center justify-center rounded-sm bg-accent px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-accent-strong"
+            >
+              Login to write a review
+            </Link>
+          </div>
         )}
 
         {reviews.isPending ? (

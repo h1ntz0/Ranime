@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Pool } from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { anime, reviews, users } from '../../database/schema.js'
+import { anime, reviews, userActivity, users } from '../../database/schema.js'
 import { AppError, forbidden, notFound } from '../../lib/errors.js'
 
 export interface ReviewInput {
@@ -92,6 +92,7 @@ export class ReviewService {
     const row = await this.getRow(reviewId)
     if (!row) throw notFound('Review not found')
     if (row.userId !== userId) throw forbidden('You can only delete your own reviews')
+    await this.db.delete(userActivity).where(eq(userActivity.reviewId, reviewId)).catch(() => {})
     await this.db.delete(reviews).where(eq(reviews.id, reviewId))
   }
 
