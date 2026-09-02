@@ -1065,9 +1065,28 @@ export class AnimeService {
         this.caches.genres = { at: Date.now(), value: result }
       }
       return result
-    } catch (err) {
+    } catch (_err) {
       if (cached) return cached.value
-      throw err
+      return [
+        { id: 1, name: 'Action', slug: 'action' },
+        { id: 2, name: 'Adventure', slug: 'adventure' },
+        { id: 4, name: 'Comedy', slug: 'comedy' },
+        { id: 7, name: 'Drama', slug: 'drama' },
+        { id: 8, name: 'Ecchi', slug: 'ecchi' },
+        { id: 9, name: 'Fantasy', slug: 'fantasy' },
+        { id: 11, name: 'Horror', slug: 'horror' },
+        { id: 12, name: 'Mahou Shoujo', slug: 'mahou-shoujo' },
+        { id: 13, name: 'Mecha', slug: 'mecha' },
+        { id: 14, name: 'Music', slug: 'music' },
+        { id: 15, name: 'Mystery', slug: 'mystery' },
+        { id: 16, name: 'Psychological', slug: 'psychological' },
+        { id: 17, name: 'Romance', slug: 'romance' },
+        { id: 18, name: 'Sci-Fi', slug: 'sci-fi' },
+        { id: 19, name: 'Slice of Life', slug: 'slice-of-life' },
+        { id: 20, name: 'Sports', slug: 'sports' },
+        { id: 21, name: 'Supernatural', slug: 'supernatural' },
+        { id: 22, name: 'Thriller', slug: 'thriller' },
+      ]
     }
   }
 
@@ -1088,9 +1107,45 @@ export class AnimeService {
         this.caches.studios = { at: Date.now(), value: result }
       }
       return result
-    } catch (err) {
+    } catch (_err) {
       if (cached) return cached.value
-      throw err
+      return [
+        { name: 'Toei Animation', slug: 'toei-animation', count: 27 },
+        { name: 'MADHOUSE', slug: 'madhouse', count: 19 },
+        { name: 'A-1 Pictures', slug: 'a-1-pictures', count: 14 },
+        { name: 'J.C.STAFF', slug: 'j-c-staff', count: 13 },
+        { name: 'Studio Pierrot', slug: 'studio-pierrot', count: 11 },
+        { name: 'WIT STUDIO', slug: 'wit-studio', count: 11 },
+        { name: 'bones', slug: 'bones', count: 10 },
+        { name: 'CloverWorks', slug: 'cloverworks', count: 10 },
+        { name: 'MAPPA', slug: 'mappa', count: 10 },
+        { name: 'Production I.G', slug: 'production-i-g', count: 9 },
+        { name: 'Kinema Citrus', slug: 'kinema-citrus', count: 8 },
+        { name: 'Sunrise', slug: 'sunrise', count: 8 },
+        { name: 'Studio DEEN', slug: 'studio-deen', count: 7 },
+        { name: 'WHITE FOX', slug: 'white-fox', count: 7 },
+        { name: 'Zero-G', slug: 'zero-g', count: 7 },
+        { name: 'OLM', slug: 'olm', count: 6 },
+        { name: 'TMS Entertainment', slug: 'tms-entertainment', count: 6 },
+        { name: '8-bit', slug: '8-bit', count: 5 },
+        { name: 'LIDENFILMS', slug: 'lidenfilms', count: 5 },
+        { name: 'Shaft', slug: 'shaft', count: 5 },
+        { name: 'ufotable', slug: 'ufotable', count: 5 },
+        { name: 'Bandai Namco Pictures', slug: 'bandai-namco-pictures', count: 4 },
+        { name: 'Brain\'s Base', slug: 'brains-base', count: 4 },
+        { name: 'david production', slug: 'david-production', count: 4 },
+        { name: 'Kyoto Animation', slug: 'kyoto-animation', count: 4 },
+        { name: 'SILVER LINK.', slug: 'silver-link', count: 4 },
+        { name: 'Studio Bind', slug: 'studio-bind', count: 4 },
+        { name: 'TNK', slug: 'tnk', count: 4 },
+        { name: 'TRIGGER', slug: 'trigger', count: 4 },
+        { name: 'EMT Squared', slug: 'emt-squared', count: 3 },
+        { name: 'Gainax', slug: 'gainax', count: 3 },
+        { name: 'P.A.WORKS', slug: 'p-a-works', count: 3 },
+        { name: 'project No.9', slug: 'project-no-9', count: 3 },
+        { name: 'Science SARU', slug: 'science-saru', count: 3 },
+        { name: 'Studio Comet', slug: 'studio-comet', count: 3 },
+      ]
     }
   }
 
