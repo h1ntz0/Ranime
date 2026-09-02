@@ -28,7 +28,7 @@ const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=6
 
 export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   app.get('/genres', async (_request, reply) => {
-    reply.header('Cache-Control', CACHE_HEADER)
+    reply.header('Cache-Control', 'no-cache, no-store, must-revalidate')
     const result = await app.animeService.genresList()
     return sendData(reply, result)
   })
@@ -80,7 +80,7 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/studios', async (_request, reply) => {
-    reply.header('Cache-Control', CACHE_HEADER)
+    reply.header('Cache-Control', 'no-cache, no-store, must-revalidate')
     const result = await app.animeService.studiosList()
     return sendData(reply, result)
   })
