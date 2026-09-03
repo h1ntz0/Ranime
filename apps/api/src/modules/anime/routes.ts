@@ -21,7 +21,7 @@ const pageQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 
-const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400'
 
 export async function animeRoutes(app: FastifyInstance): Promise<void> {
   app.get('/anime', async (request, reply) => {

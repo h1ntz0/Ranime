@@ -24,7 +24,7 @@ const TOP_SORT: Record<string, string> = {
   trending: 'TRENDING',
 }
 
-const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+const CACHE_HEADER = 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400'
 
 export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   app.get('/genres', async (_request, reply) => {
