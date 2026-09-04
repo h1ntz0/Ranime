@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchAnimeList, fetchGenres } from '../lib/api'
@@ -172,8 +172,6 @@ export default function ExplorePage() {
 
   const genres = useQuery({ queryKey: ['genres'], queryFn: ({ signal }) => fetchGenres(signal) })
 
-  const queryClient = useQueryClient()
-
   function update(next: Record<string, string | number | null | undefined>) {
     const merged: Record<string, string> = {}
     const candidates: [string, unknown][] = [
@@ -191,7 +189,6 @@ export default function ExplorePage() {
       if (value !== undefined && value !== null && value !== '') merged[key] = String(value)
     }
     setSearchParams(merged)
-    queryClient.removeQueries({ queryKey: ['explore'] })
   }
 
   const activeFilters: ActiveFilter[] = []

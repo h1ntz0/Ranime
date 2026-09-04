@@ -120,7 +120,7 @@ export async function adminRoutes(app: FastifyInstance, authService: AuthService
     })
   })
 
-  app.get('/admin/users', async (request, reply) => {
+  adminScope.get('/admin/users', async (request, reply) => {
     const query = z
       .object({
         page: z.coerce.number().int().min(1).default(1),
@@ -168,7 +168,7 @@ export async function adminRoutes(app: FastifyInstance, authService: AuthService
     })
   })
 
-  app.patch('/admin/users/:id/role', async (request, reply) => {
+  adminScope.patch('/admin/users/:id/role', async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const { role } = z.object({ role: z.enum(['USER', 'ADMIN']) }).parse(request.body)
 

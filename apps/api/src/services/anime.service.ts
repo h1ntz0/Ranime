@@ -1065,7 +1065,7 @@ export class AnimeService {
         this.caches.genres = { at: Date.now(), value: result }
       }
       return result
-    } catch (_err) {
+    } catch {
       if (cached) return cached.value
       return [
         { id: 1, name: 'Action', slug: 'action' },
@@ -1107,7 +1107,7 @@ export class AnimeService {
         this.caches.studios = { at: Date.now(), value: result }
       }
       return result
-    } catch (_err) {
+    } catch {
       if (cached) return cached.value
       return [
         { name: 'Toei Animation', slug: 'toei-animation', count: 27 },

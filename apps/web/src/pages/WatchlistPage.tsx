@@ -30,12 +30,35 @@ export default function WatchlistPage() {
       input?: { status: ListStatus; currentEpisode: number }
       remove?: boolean
     }) => (remove ? removeWatchlist(animeId) : updateWatchlist(animeId, input!)),
-    onSuccess: (_d, vars) => {
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ['watchlist'] })
+      const prev = queryClient.getQueriesData({ queryKey: ['watchlist'] })
+      queryClient.setQueriesData<{ items?: { anime: { id: number }; status: ListStatus; currentEpisode: number }[] }>(
+        { queryKey: ['watchlist'] },
+        (old) => {
+          if (!old?.items) return old
+          if (vars.remove) return { ...old, items: old.items.filter((i) => i.anime.id !== vars.animeId) }
+          return {
+            ...old,
+            items: old.items.map((i) =>
+              i.anime.id === vars.animeId && vars.input
+                ? { ...i, status: vars.input.status, currentEpisode: vars.input.currentEpisode }
+                : i,
+            ),
+          }
+        },
+      )
+      return { prev }
+    },
+    onError: (e, _v, ctx) => {
+      ctx?.prev?.forEach(([k, v]) => queryClient.setQueryData(k, v))
+      toast(e instanceof Error ? e.message : 'Update failed', 'error')
+    },
+    onSuccess: (_d, vars) => toast(vars.remove ? 'Removed from watchlist' : 'Updated'),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
       queryClient.invalidateQueries({ queryKey: ['library'] })
-      toast(vars.remove ? 'Removed from watchlist' : 'Updated')
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Update failed', 'error'),
   })
 
   return (

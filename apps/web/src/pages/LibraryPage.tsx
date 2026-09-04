@@ -96,13 +96,36 @@ export default function LibraryPage() {
       input?: { status: ListStatus; currentEpisode: number }
       remove?: boolean
     }) => (remove ? removeWatchlist(animeId) : updateWatchlist(animeId, input!)),
-    onSuccess: (_d, vars) => {
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ['library'] })
+      const prev = queryClient.getQueriesData({ queryKey: ['library'] })
+      queryClient.setQueriesData<{ items?: { anime: { id: number }; status: ListStatus; currentEpisode: number }[] }>(
+        { queryKey: ['library'] },
+        (old) => {
+          if (!old?.items) return old
+          if (vars.remove) return { ...old, items: old.items.filter((i) => i.anime.id !== vars.animeId) }
+          return {
+            ...old,
+            items: old.items.map((i) =>
+              i.anime.id === vars.animeId && vars.input
+                ? { ...i, status: vars.input.status, currentEpisode: vars.input.currentEpisode }
+                : i,
+            ),
+          }
+        },
+      )
+      return { prev }
+    },
+    onError: (e, _v, ctx) => {
+      ctx?.prev?.forEach(([k, v]) => queryClient.setQueryData(k, v))
+      toast(e instanceof Error ? e.message : 'Action failed', 'error')
+    },
+    onSuccess: (_d, vars) => toast(vars.remove ? 'Removed from library' : 'Library updated'),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['library'] })
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
       queryClient.invalidateQueries({ queryKey: ['statistics'] })
-      toast(vars.remove ? 'Removed from library' : 'Library updated')
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Action failed', 'error'),
   })
 
   async function handleBatchStatus(newStatus: ListStatus) {
