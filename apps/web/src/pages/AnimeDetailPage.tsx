@@ -219,8 +219,8 @@ export default function AnimeDetailPage() {
     enabled: Number.isFinite(animeId),
   })
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['anime', animeId] })
+  const entryKey = ['anime', animeId, 'entry', user?.id]
+  const invalidateLibrary = () => {
     queryClient.invalidateQueries({ queryKey: ['library'] })
     queryClient.invalidateQueries({ queryKey: ['watchlist'] })
     queryClient.invalidateQueries({ queryKey: ['statistics'] })
@@ -229,37 +229,79 @@ export default function AnimeDetailPage() {
   const saveEntry = useMutation({
     mutationFn: ({ status, currentEpisode }: { status: ListStatus; currentEpisode: number }) =>
       upsertWatchlist(animeId, { status, currentEpisode }),
-    onSuccess: () => {
-      invalidate()
-      toast('Library updated')
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: entryKey })
+      const prev = queryClient.getQueryData(entryKey)
+      queryClient.setQueryData(entryKey, (old: typeof prev) =>
+        old ? { ...old, status: vars.status, currentEpisode: vars.currentEpisode } : old,
+      )
+      return { prev }
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Failed to update library', 'error'),
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev !== undefined) queryClient.setQueryData(entryKey, ctx.prev)
+      toast(e instanceof Error ? e.message : 'Failed to update library', 'error')
+    },
+    onSuccess: () => toast('Library updated'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: entryKey })
+      invalidateLibrary()
+    },
   })
 
   const removeEntry = useMutation({
     mutationFn: () => removeWatchlist(animeId),
-    onSuccess: () => {
-      invalidate()
-      toast('Removed from library')
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: entryKey })
+      const prev = queryClient.getQueryData(entryKey)
+      queryClient.setQueryData(entryKey, null)
+      return { prev }
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Failed to remove', 'error'),
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev !== undefined) queryClient.setQueryData(entryKey, ctx.prev)
+      toast(e instanceof Error ? e.message : 'Failed to remove', 'error')
+    },
+    onSuccess: () => toast('Removed from library'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: entryKey })
+      invalidateLibrary()
+    },
   })
 
+  const ratingsKey = ['anime', animeId, 'ratings']
   const rate = useMutation({
-    mutationFn: (score: number) => setRating(animeId, score),
+    mutationFn: async (score: number) => {
+      if (score === 0) {
+        await removeRating(animeId)
+        return 0
+      }
+      return setRating(animeId, score)
+    },
+    onMutate: async (score) => {
+      await queryClient.cancelQueries({ queryKey: ratingsKey })
+      const prev = queryClient.getQueryData(ratingsKey)
+      queryClient.setQueryData(ratingsKey, (old: typeof prev) =>
+        old && typeof old === 'object' ? { ...old, myScore: score === 0 ? null : score } : old,
+      )
+      return { prev }
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev !== undefined) queryClient.setQueryData(ratingsKey, ctx.prev)
+      toast(e instanceof Error ? e.message : 'Failed to save rating', 'error')
+    },
     onSuccess: (_, score) => {
-      invalidate()
       if (score === 0) toast('Rating removed')
       else toast(`Rated ${score.toFixed(1)}`)
     },
-    onError: (e) => toast(e instanceof Error ? e.message : 'Failed to save rating', 'error'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ratingsKey }),
   })
 
+  const myReviewKey = ['anime', animeId, 'myReview', user?.id]
   const reviewMutation = useMutation({
     mutationFn: (input: { rating: number; title: string; content: string; containsSpoiler: boolean }) =>
       myReview.data ? updateReview(myReview.data.id, input) : createReview(animeId, input),
-    onSuccess: () => {
-      invalidate()
+    onSuccess: (saved) => {
+      queryClient.setQueryData(myReviewKey, saved)
+      queryClient.invalidateQueries({ queryKey: ['anime', animeId, 'reviews'] })
       toast('Review saved')
       setReviewFormOpen(false)
       setEditingReview(false)
@@ -270,8 +312,8 @@ export default function AnimeDetailPage() {
   const deleteReviewMutation = useMutation({
     mutationFn: (reviewId: string) => deleteReview(reviewId),
     onSuccess: () => {
-      invalidate()
-      toast('Review deleted')
+      queryClient.setQueryData(myReviewKey, null)
+      queryClient.invalidateQueries({ queryKey: ['anime', animeId, 'reviews'] })
       setEditingReview(false)
       setDeleteTarget(null)
     },
@@ -455,7 +497,7 @@ export default function AnimeDetailPage() {
                   <StarRating
                     value={ratings.data?.myScore ?? null}
                     onChange={(score) => {
-                      if (score === 0) removeRating(animeId).then(invalidate).catch(() => {})
+                      if (score === 0) rate.mutate(0)
                       else rate.mutate(score)
                     }}
                     disabled={rate.isPending}
@@ -478,7 +520,7 @@ export default function AnimeDetailPage() {
                 <StarRating
                   value={ratings.data?.myScore ?? null}
                   onChange={(score) => {
-                    if (score === 0) removeRating(animeId).then(invalidate).catch(() => {})
+                    if (score === 0) rate.mutate(0)
                     else rate.mutate(score)
                   }}
                   disabled={rate.isPending}
@@ -545,10 +587,7 @@ export default function AnimeDetailPage() {
             />
             <StarRating
               value={ratings.data?.myScore ?? null}
-              onChange={(score) => {
-                if (score === 0) removeRating(animeId).then(invalidate).catch(() => {})
-                else rate.mutate(score)
-              }}
+              onChange={(score) => rate.mutate(score)}
               disabled={rate.isPending}
               variant="pill"
               menuPlacement="up"

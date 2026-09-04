@@ -19,27 +19,13 @@ export function PageLoadingOverlay({
       aria-live="polite"
       aria-label={message}
       className={cn(
-        'fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center bg-black/60 backdrop-blur-xs select-none transition-all',
+        'pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center select-none',
         className,
       )}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-      }}
     >
-      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-line-strong/80 bg-surface/95 px-6 py-5 shadow-2xl shadow-black/80 backdrop-blur-md">
-        <div className="relative flex h-10 w-10 items-center justify-center">
-          <div className="h-8 w-8 rounded-full border-2 border-line-strong" />
-          <div className="absolute h-8 w-8 rounded-full border-2 border-accent border-t-transparent border-r-transparent animate-spin" />
-        </div>
-        <span className="text-xs font-semibold tracking-wider text-ink uppercase">
-          {message}
-        </span>
+      <div className="pointer-events-none flex items-center gap-2 rounded-full border border-line bg-surface/90 px-3 py-1.5 shadow-lg shadow-black/40 backdrop-blur">
+        <div className="h-3.5 w-3.5 rounded-full border-2 border-line-strong border-t-accent animate-spin" />
+        <span className="text-xs font-medium text-ink-2">{message}</span>
       </div>
     </div>
   )
