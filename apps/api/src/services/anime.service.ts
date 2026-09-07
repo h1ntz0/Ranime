@@ -625,47 +625,90 @@ export class AnimeService {
     const cached = this.caches.recs.get(key)
     if (cached && Date.now() - cached.at < this.ttl.recs) return cached.value
 
-    const data = mediaDetailSchema.parse(
-      await this.options.client.query(MEDIA_DETAIL_QUERY, {
-        id: externalId,
-        recPage: page,
-        recPerPage: perPage,
-      }),
-    )
-    const detail = data.Media
-    const cards: ReturnType<typeof normalizeMediaCard>[] = []
-    for (const node of detail?.recommendations?.nodes ?? []) {
-      const rec = node.mediaRecommendation
-      if (!rec) continue
-      cards.push(
-        normalizeMediaCard({
-          ...rec,
-          coverImage: { extraLarge: rec.coverImage?.large ?? null, large: rec.coverImage?.large ?? null },
-          bannerImage: null,
-          startDate: { year: null, month: null, day: null },
-          endDate: { year: null, month: null, day: null },
-          season: null,
-          seasonYear: null,
-          duration: null,
-          popularity: null,
-          trending: null,
-          source: null,
-          countryOfOrigin: null,
-          genres: [],
-          studios: { nodes: [] },
-          nextAiringEpisode: null,
+    try {
+      const data = mediaDetailSchema.parse(
+        await this.options.client.query(MEDIA_DETAIL_QUERY, {
+          id: externalId,
+          recPage: page,
+          recPerPage: perPage,
         }),
       )
+      const detail = data.Media
+      const cards: ReturnType<typeof normalizeMediaCard>[] = []
+      for (const node of detail?.recommendations?.nodes ?? []) {
+        const rec = node.mediaRecommendation
+        if (!rec) continue
+        cards.push(
+          normalizeMediaCard({
+            ...rec,
+            coverImage: { extraLarge: rec.coverImage?.large ?? null, large: rec.coverImage?.large ?? null },
+            bannerImage: null,
+            startDate: { year: null, month: null, day: null },
+            endDate: { year: null, month: null, day: null },
+            season: null,
+            seasonYear: null,
+            duration: null,
+            popularity: null,
+            trending: null,
+            source: null,
+            countryOfOrigin: null,
+            genres: [],
+            studios: { nodes: [] },
+            nextAiringEpisode: null,
+          }),
+        )
+      }
+      const result: PagedResult<AnimeCardView> = {
+        items: cards.map((c) => this.toCardView(c.anime, [], [], null)),
+        total: detail?.recommendations?.pageInfo?.total ?? cards.length,
+        page,
+        perPage,
+        hasNextPage: (detail?.recommendations?.pageInfo?.total ?? 0) > page * perPage,
+      }
+      this.caches.recs.set(key, { at: Date.now(), value: result })
+      return result
+    } catch {
+      try {
+        const local = await this.findLocalAnime(externalId)
+        if (local) {
+          const localGenres = await this.db
+            .select({ name: genres.name })
+            .from(animeGenres)
+            .innerJoin(genres, eq(genres.id, animeGenres.genreId))
+            .where(eq(animeGenres.animeId, local.id))
+          const genreName = localGenres[0]?.name
+          if (genreName) {
+            const fallbackList = await this.list({
+              genre: genreName,
+              sort: 'POPULARITY',
+              page: 1,
+              limit: perPage,
+            })
+            const filtered = fallbackList.items.filter((item) => item.id !== externalId)
+            if (filtered.length > 0) {
+              const fallbackResult: PagedResult<AnimeCardView> = {
+                items: filtered,
+                total: filtered.length,
+                page,
+                perPage,
+                hasNextPage: false,
+              }
+              this.caches.recs.set(key, { at: Date.now(), value: fallbackResult })
+              return fallbackResult
+            }
+          }
+        }
+      } catch {
+      }
+
+      return {
+        items: [],
+        total: 0,
+        page,
+        perPage,
+        hasNextPage: false,
+      }
     }
-    const result: PagedResult<AnimeCardView> = {
-      items: cards.map((c) => this.toCardView(c.anime, [], [], null)),
-      total: detail?.recommendations?.pageInfo?.total ?? cards.length,
-      page,
-      perPage,
-      hasNextPage: (detail?.recommendations?.pageInfo?.total ?? 0) > page * perPage,
-    }
-    this.caches.recs.set(key, { at: Date.now(), value: result })
-    return result
   }
 
   /* ---------------- upstream helpers ---------------- */

@@ -600,7 +600,7 @@ export default function AnimeDetailPage() {
         <div className="min-w-0">
           <Section title="Synopsis">
             <p className="max-w-prose whitespace-pre-line break-words text-sm leading-relaxed text-ink-2">
-              {stripHtml(anime.description) || 'Synopsis unavailable.'}
+              {stripHtml(anime.description) || 'Synopsis currently unavailable (syncing with catalog).'}
             </p>
           </Section>
 
@@ -868,9 +868,7 @@ export default function AnimeDetailPage() {
       <Section title="Recommendations">
         {recommendations.isPending ? (
           <CardGridSkeleton count={6} />
-        ) : recommendations.isError ? (
-          <ErrorState message="Recommendations are temporarily unavailable." />
-        ) : recommendations.data.items.length === 0 ? (
+        ) : recommendations.isError || !recommendations.data || recommendations.data.items.length === 0 ? (
           <EmptyState title="No recommendations yet" />
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5">
