@@ -5,9 +5,16 @@ import { ZodError } from 'zod'
 
 export function errorHandler(app: FastifyInstance): void {
   app.setErrorHandler((error, request, reply) => {
-    if (error instanceof AppError) {
-      return reply.code(error.statusCode).send({
-        error: { code: error.code, message: error.message },
+    if (
+      error instanceof AppError ||
+      (error as any)?.name === 'AppError' ||
+      (typeof (error as any)?.statusCode === 'number' && typeof (error as any)?.code === 'string')
+    ) {
+      const err = error as any
+      const statusCode = typeof err.statusCode === 'number' ? err.statusCode : 500
+      const code = typeof err.code === 'string' ? err.code : 'ERROR'
+      return reply.code(statusCode).send({
+        error: { code, message: err.message || 'An error occurred' },
       })
     }
 
@@ -46,6 +53,7 @@ export function errorHandler(app: FastifyInstance): void {
       })
     }
 
+    console.error('Unhandled API error:', error)
     request.log.error({ error }, 'Unhandled error')
     return reply.code(500).send({
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
