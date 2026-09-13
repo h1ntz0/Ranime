@@ -121,6 +121,9 @@ const SORT_MAP: Record<string, string> = {
 
 export const DEFAULT_LIST_SORT = 'TRENDING_DESC'
 
+/** How long a response waits on AniList before the mirror answers instead. */
+const UPSTREAM_DEADLINE_MS = 1200
+
 export interface AnimeServiceOptions {
   client: AniListClient
   pool: Pool
@@ -189,6 +192,22 @@ export class AnimeService {
   }
 
   /**
+   * Resolves to null instead of letting a slow AniList hold the response. AniList page queries
+   * have been observed taking 15s+, which is far worse than serving the mirror.
+   */
+  private async withDeadline<T>(task: Promise<T>): Promise<T | null> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const deadline = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), UPSTREAM_DEADLINE_MS)
+    })
+    try {
+      return await Promise.race([task, deadline])
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  /**
    * Refreshes a slice of the catalog after the caller was already answered from the local
    * mirror, so an AniList round trip never sits in the response path. Failures are dropped:
    * the stale copy went out and the next caller simply tries again. Refresh work is serialized
@@ -214,24 +233,44 @@ export class AnimeService {
       return cached.value
     }
 
-    // Local-first: a mirrored slice of the catalog answers immediately and AniList refreshes
-    // it afterwards. Text search stays upstream-first because relevance ordering is AniList's
-    // and the mirror cannot reproduce it. A partial mirror page would misreport the catalog
-    // (wrong total, empty next pages), so the mirror only answers when it can fill the page.
-    if (!params.q?.trim()) {
-      const local = await this.listFromLocal(params, page, perPage).catch(() => null)
-      if (local && local.items.length >= perPage) {
-        this.caches.list.set(key, { at: Date.now(), value: local })
-        await this.refresh(`list:${key}`, async () => {
-          this.caches.list.set(key, { at: Date.now(), value: await this.fetchPage(params, page, perPage, sort) })
-        })
-        return local
+    // Search relevance only exists upstream, so those queries wait for it.
+    if (params.q?.trim()) {
+      let searched: PagedResult<AnimeCardView>
+      try {
+        searched = await this.runOnce(`list:${key}`, () => this.fetchPage(params, page, perPage, sort))
+      } catch (error) {
+        if (!(error instanceof AniListError)) throw error
+        searched = await this.listFromLocal(params, page, perPage)
       }
+      this.caches.list.set(key, { at: Date.now(), value: searched })
+      return searched
     }
 
-    let result: PagedResult<AnimeCardView>
+    // Everything else asks the source first, but the mirror answers when the source is slow.
+    // The mirror read runs alongside the request, so a deadline costs no extra waiting.
+    const mirror = this.listFromLocal(params, page, perPage).catch(() => null)
+    const upstream = this.runOnce(`list:${key}`, () => this.fetchPage(params, page, perPage, sort))
+
+    let result: PagedResult<AnimeCardView> | null = null
     try {
-      result = await this.runOnce(`list:${key}`, () => this.fetchPage(params, page, perPage, sort))
+      result = await this.withDeadline(upstream)
+    } catch (error) {
+      if (!(error instanceof AniListError)) throw error
+    }
+    if (result) {
+      this.caches.list.set(key, { at: Date.now(), value: result })
+      return result
+    }
+
+    const local = await mirror
+    if (local && local.items.length > 0) {
+      // The source missed this caller's deadline; hand the next one its finished page.
+      void upstream.then((fresh) => this.caches.list.set(key, { at: Date.now(), value: fresh })).catch(() => undefined)
+      return local
+    }
+
+    try {
+      result = await upstream
     } catch (error) {
       if (!(error instanceof AniListError)) throw error
       result = await this.listFromLocal(params, page, perPage)
@@ -352,19 +391,25 @@ export class AnimeService {
     if (!complete) {
       // Nothing usable mirrored yet. Answer from the upstream payload and persist afterwards:
       // waiting for the write transaction would stall the first view of every unseen title.
+      const upstream = this.runOnce(`detail:${externalId}`, () => this.fetchDetail(externalId))
+      let detail: AniListMediaDetail | null = null
       try {
-        const detail = await this.runOnce(`detail:${externalId}`, () => this.fetchDetail(externalId))
-        if (detail) {
-          const view = await this.detailViewFromPayload(externalId, detail)
-          this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
-          await this.refresh(`persist:${externalId}`, async () => {
-            await this.persistDetail(detail)
-          })
-          return view
-        }
+        detail = await this.withDeadline(upstream)
       } catch (error) {
-        // A schema surprise or an upstream outage must not blank a page the mirror can serve.
-        if (!local) throw error
+        if (!(error instanceof AniListError)) throw error
+      }
+      if (!detail) void upstream.catch(() => undefined)
+      // With nothing mirrored the source is the only answer, however slow it is.
+      if (!detail && !local) detail = await upstream
+
+      if (detail) {
+        const payload = detail
+        const view = await this.detailViewFromPayload(externalId, payload)
+        this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
+        await this.refresh(`persist:${externalId}`, async () => {
+          await this.persistDetail(payload)
+        })
+        return view
       }
     } else if (this.isStale(local.lastSyncedAt, this.ttl.detail)) {
       await this.refresh(`detail:${externalId}`, async () => {
@@ -1366,18 +1411,28 @@ export class AnimeService {
     const cached = this.caches.list.get(key)
     if (cached && Date.now() - cached.at < this.ttl.airing) return cached.value
 
-    const local = await this.localAiring(page, perPage).catch(() => null)
+    const mirror = this.localAiring(page, perPage).catch(() => null)
+    const upstream = this.runOnce(`airing:${key}`, () => this.fetchAiring(page, perPage))
+
+    let result: PagedResult<AnimeCardView> | null = null
+    try {
+      result = await this.withDeadline(upstream)
+    } catch (error) {
+      if (!(error instanceof AniListError)) throw error
+    }
+    if (result) {
+      this.caches.list.set(key, { at: Date.now(), value: result })
+      return result
+    }
+
+    const local = await mirror
     if (local && local.items.length > 0) {
-      this.caches.list.set(key, { at: Date.now(), value: local })
-      await this.refresh(`airing:${key}`, async () => {
-        this.caches.list.set(key, { at: Date.now(), value: await this.fetchAiring(page, perPage) })
-      })
+      void upstream.then((fresh) => this.caches.list.set(key, { at: Date.now(), value: fresh })).catch(() => undefined)
       return local
     }
 
-    let result: PagedResult<AnimeCardView>
     try {
-      result = await this.runOnce(`airing:${key}`, () => this.fetchAiring(page, perPage))
+      result = await upstream
     } catch (error) {
       if (!(error instanceof AniListError)) throw error
       result = await this.localAiring(page, perPage)
