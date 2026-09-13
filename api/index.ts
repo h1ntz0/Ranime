@@ -67,9 +67,6 @@ async function getApp() {
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
-    // Warm the catalog mirror in the background so the first visitors are answered from
-    // Postgres instead of waiting on AniList.
-    void app.animeService.warmCatalog()
     cachedApp = app
   }
   return cachedApp

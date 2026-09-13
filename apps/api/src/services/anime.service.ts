@@ -177,6 +177,7 @@ export class AnimeService {
   /* ---------------- upstream coordination ---------------- */
 
   private inflight = new Map<string, Promise<unknown>>()
+  private background: Promise<unknown> = Promise.resolve()
 
   /** Collapses concurrent identical upstream work into a single AniList call per instance. */
   private runOnce<T>(key: string, task: () => Promise<T>): Promise<T> {
@@ -190,12 +191,14 @@ export class AnimeService {
   /**
    * Refreshes a slice of the catalog after the caller was already answered from the local
    * mirror, so an AniList round trip never sits in the response path. Failures are dropped:
-   * the stale copy went out and the next caller simply tries again. Tests await it so
-   * assertions observe the settled state instead of racing the background work.
+   * the stale copy went out and the next caller simply tries again. Refresh work is serialized
+   * and never awaits the response, so a batch upsert cannot hold the two-connection pool while
+   * a request needs it. Tests await the queue to observe the settled state.
    */
   private async refresh(key: string, task: () => Promise<void>): Promise<void> {
-    const settled = this.runOnce(`refresh:${key}`, task).catch(() => undefined)
-    if (process.env.NODE_ENV === 'test') await settled
+    const queued = this.background.then(() => this.runOnce(`refresh:${key}`, task))
+    this.background = queued.catch(() => undefined)
+    if (process.env.NODE_ENV === 'test') await this.background
   }
 
   /* ---------------- list / search / filters ---------------- */
@@ -307,13 +310,13 @@ export class AnimeService {
       .leftJoin(genres, eq(genres.id, animeGenres.genreId))
       .where(conditions.length ? and(...conditions) : undefined)
 
-    const count = (await this.db.select({ n: sql<number>`count(*)::int` }).from(joined.as('j')))[0]?.n ?? 0
-
+    // Window count rides along with the page so the mirror path costs one round trip fewer.
     const pagedIds = await this.db
-      .select({ id: joined.as('j').id })
+      .select({ id: joined.as('j').id, total: sql<number>`count(*) over ()::int` })
       .from(joined.as('j'))
       .limit(perPage)
       .offset((page - 1) * perPage)
+    const count = pagedIds[0]?.total ?? 0
 
     const rows =
       pagedIds.length > 0
@@ -347,11 +350,18 @@ export class AnimeService {
     const complete = Boolean(local?.description)
 
     if (!complete) {
-      // Nothing usable mirrored yet: pay for the full detail payload once, persist it, then
-      // fall through to the local read so this page and every later one is served by Postgres.
+      // Nothing usable mirrored yet. Answer from the upstream payload and persist afterwards:
+      // waiting for the write transaction would stall the first view of every unseen title.
       try {
         const detail = await this.runOnce(`detail:${externalId}`, () => this.fetchDetail(externalId))
-        if (detail) await this.persistDetail(detail)
+        if (detail) {
+          const view = await this.detailViewFromPayload(externalId, detail)
+          this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
+          await this.refresh(`persist:${externalId}`, async () => {
+            await this.persistDetail(detail)
+          })
+          return view
+        }
       } catch (error) {
         // A schema surprise or an upstream outage must not blank a page the mirror can serve.
         if (!local) throw error
@@ -388,6 +398,51 @@ export class AnimeService {
     }
     this.caches.list.set(key, { at: Date.now(), value: resultView as unknown as PagedResult<AnimeCardView> })
     return resultView
+  }
+
+  /** Builds the detail view straight from an AniList payload, without waiting on the mirror write. */
+  private async detailViewFromPayload(
+    externalId: number,
+    detail: NonNullable<AniListMediaDetail>,
+  ): Promise<AnimeDetailView> {
+    const date = (value: { year: number | null; month: number | null; day: number | null }): string | null =>
+      value.year ? `${value.year}-${String(value.month ?? 1).padStart(2, '0')}-${String(value.day ?? 1).padStart(2, '0')}` : null
+    const communityRating = await this.communityRating(externalId).catch(() => ({ average: null, count: 0 }))
+    const nextAiring = detail.nextAiringEpisode
+
+    return {
+      id: detail.id,
+      title: {
+        romaji: detail.title?.romaji ?? '',
+        english: detail.title?.english ?? null,
+        native: detail.title?.native ?? null,
+      },
+      coverImage: detail.coverImage?.extraLarge ?? detail.coverImage?.large ?? null,
+      bannerImage: detail.bannerImage ?? null,
+      format: detail.format ?? null,
+      status: detail.status ?? null,
+      episodes: detail.episodes ?? null,
+      duration: detail.duration ?? null,
+      season: detail.season ?? null,
+      seasonYear: detail.seasonYear ?? null,
+      averageScore: detail.averageScore ?? null,
+      popularity: detail.popularity ?? null,
+      trending: detail.trending ?? null,
+      startDate: date(detail.startDate),
+      endDate: date(detail.endDate),
+      source: detail.source ?? null,
+      country: detail.countryOfOrigin ?? null,
+      genres: (detail.genres ?? []).filter((g) => g !== 'Hentai'),
+      studios: (detail.studios?.nodes ?? []).map((s) => s.name),
+      nextAiring:
+        nextAiring?.episode != null && nextAiring.airingAt != null
+          ? { episode: nextAiring.episode, airingAt: nextAiring.airingAt }
+          : null,
+      description: detail.description ?? null,
+      communityRating,
+      charactersTotal: detail.characters?.pageInfo?.total ?? 0,
+      staffTotal: detail.staff?.pageInfo?.total ?? 0,
+    }
   }
 
   async compare(externalIds: number[]): Promise<(AnimeCardView & { communityRating: { average: number | null; count: number } })[]> {
@@ -1367,52 +1422,6 @@ export class AnimeService {
       page,
       perPage,
       hasNextPage: page * perPage < rows.length,
-    }
-  }
-
-  /**
-   * Fills the mirror with the entry points every visitor hits, so those requests are answered
-   * from Postgres instead of waiting on AniList. Called once per server instance, after boot,
-   * and skipped while the mirror is already fresh.
-   */
-  async warmCatalog(): Promise<void> {
-    if (process.env.NODE_ENV === 'test') return
-    try {
-      const [latest] = await this.db
-        .select({ syncedAt: sql<Date | null>`max(${anime.lastSyncedAt})` })
-        .from(anime)
-      const syncedAt = latest?.syncedAt ? new Date(latest.syncedAt).getTime() : 0
-      if (Date.now() - syncedAt < 30 * 60 * 1000) return
-
-      const now = new Date()
-      const month = now.getMonth()
-      // Same season rule the home page uses (apps/web/src/pages/HomePage.tsx).
-      const season = month >= 2 && month <= 4 ? 'SPRING' : month <= 1 ? 'WINTER' : month <= 7 ? 'SUMMER' : 'FALL'
-      const targets: AnimeListParams[] = [
-        { sort: 'TRENDING', limit: 24 },
-        { sort: 'POPULARITY', limit: 24 },
-        { sort: 'SCORE', limit: 24 },
-        { season, year: now.getFullYear() },
-        { sort: 'TRENDING', limit: 20, page: 2 },
-      ]
-
-      for (const params of targets) {
-        try {
-          const page = params.page ?? 1
-          const perPage = Math.min(params.limit ?? 20, 50)
-          const sort = SORT_MAP[params.sort ?? ''] ?? DEFAULT_LIST_SORT
-          await this.runOnce(`warm:${JSON.stringify(params)}`, () => this.fetchPage(params, page, perPage, sort))
-        } catch {
-          // best effort: warmup never affects request handling
-        }
-      }
-      try {
-        await this.runOnce('warm:airing', () => this.fetchAiring(1, 20))
-      } catch {
-        // best effort
-      }
-    } catch {
-      // warmup never affects request handling
     }
   }
 
