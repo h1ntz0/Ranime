@@ -25,25 +25,30 @@ async function ensureMigrations() {
     })
     try {
       await migrate(drizzle(pool), { migrationsFolder })
-      // Ensure demo + admin exist in prod (idempotent)
+      // Ensure demo + admin exist in prod (idempotent). Passwords are only hashed when the
+      // row is missing: argon2 at boot costs ~1s of CPU per cold instance and would silently
+      // revert any password change.
       try {
-        const argon2 = await import('argon2')
-        const demoHash = await argon2.hash('REDACTED-PASSWORD')
-        const adminHash = await argon2.hash('REDACTED-PASSWORD')
-        await pool.query(
-          `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
-          [demoHash],
-        )
-        await pool.query(
-          `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
-          [demoHash],
-        )
-        await pool.query(`UPDATE users SET password_hash=$1, updated_at=now() WHERE email='demo@example.local'`, [demoHash])
-        await pool.query(
-          `INSERT INTO users (username, email, password_hash, role) VALUES ('arrofi','admin@example.local',$1,'ADMIN') ON CONFLICT (email) DO NOTHING`,
-          [adminHash],
-        )
-        await pool.query(`UPDATE users SET password_hash=$1, role='ADMIN', updated_at=now() WHERE email='admin@example.local'`, [adminHash])
+        const { rows: demoRows } = await pool.query(`SELECT 1 FROM users WHERE email = 'demo@example.local'`)
+        if (demoRows.length === 0) {
+          const argon2 = await import('argon2')
+          await pool.query(
+            `INSERT INTO users (username, email, password_hash, role) VALUES ('demo','demo@example.local',$1,'USER') ON CONFLICT (email) DO NOTHING`,
+            [await argon2.hash('REDACTED-PASSWORD')],
+          )
+        }
+        const { rows: adminRows } = await pool.query(`SELECT 1 FROM users WHERE email = 'admin@example.local'`)
+        if (adminRows.length === 0) {
+          const argon2 = await import('argon2')
+          await pool.query(
+            `INSERT INTO users (username, email, password_hash, role) VALUES ('arrofi','admin@example.local',$1,'ADMIN') ON CONFLICT (email) DO NOTHING`,
+            [await argon2.hash('REDACTED-PASSWORD')],
+          )
+        } else {
+          await pool.query(
+            `UPDATE users SET role='ADMIN', updated_at=now() WHERE email='admin@example.local' AND role <> 'ADMIN'`,
+          )
+        }
       } catch (e) {
         console.error('Seed admin/demo failed (non-fatal)', e)
       }
@@ -62,6 +67,9 @@ async function getApp() {
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
+    // Warm the catalog mirror in the background so the first visitors are answered from
+    // Postgres instead of waiting on AniList.
+    void app.animeService.warmCatalog()
     cachedApp = app
   }
   return cachedApp

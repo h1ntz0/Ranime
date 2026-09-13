@@ -28,6 +28,7 @@ import { StatisticsService } from './modules/statistics/service.js'
 import { ActivityService } from './modules/activity/service.js'
 import { EmailService } from './services/email.service.js'
 import { errorHandler } from './plugins/errors.js'
+import { clientKey } from './lib/http.js'
 import { AnimeService } from './services/anime.service.js'
 import { AniListClient } from './integrations/anilist/client.js'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -91,6 +92,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
     global: true,
     max: 300,
     timeWindow: '1 minute',
+    // Behind the proxy every socket shares one address; key on the forwarded client instead so
+    // one visitor cannot exhaust the limit for everyone.
+    keyGenerator: (request) => clientKey(request.headers, request.ip),
     errorResponseBuilder: () => ({
       error: {
         code: 'RATE_LIMIT_EXCEEDED',

@@ -6,7 +6,6 @@ import { AppError } from '../lib/errors.js'
 import { slugify } from '../lib/slug.js'
 import { AniListClient, AniListError } from '../integrations/anilist/client.js'
 import {
-  MEDIA_BASIC_DETAIL_QUERY,
   MEDIA_CHARACTERS_QUERY,
   MEDIA_DETAIL_QUERY,
   MEDIA_PAGE_QUERY,
@@ -92,6 +91,23 @@ export interface AnimeDetailView extends AnimeCardView {
   staffTotal: number
 }
 
+export interface CharacterView {
+  id: number
+  name: string
+  nameNative: string | null
+  image: string | null
+  role: string
+  voiceActor: { name: string; language: string } | null
+}
+
+export interface StaffView {
+  id: number
+  name: string
+  nameNative: string | null
+  image: string | null
+  role: string
+}
+
 const SORT_MAP: Record<string, string> = {
   POPULARITY: 'POPULARITY_DESC',
   SCORE: 'SCORE_DESC',
@@ -158,6 +174,30 @@ export class AnimeService {
     }
   }
 
+  /* ---------------- upstream coordination ---------------- */
+
+  private inflight = new Map<string, Promise<unknown>>()
+
+  /** Collapses concurrent identical upstream work into a single AniList call per instance. */
+  private runOnce<T>(key: string, task: () => Promise<T>): Promise<T> {
+    const pending = this.inflight.get(key) as Promise<T> | undefined
+    if (pending) return pending
+    const started = task().finally(() => this.inflight.delete(key))
+    this.inflight.set(key, started)
+    return started
+  }
+
+  /**
+   * Refreshes a slice of the catalog after the caller was already answered from the local
+   * mirror, so an AniList round trip never sits in the response path. Failures are dropped:
+   * the stale copy went out and the next caller simply tries again. Tests await it so
+   * assertions observe the settled state instead of racing the background work.
+   */
+  private async refresh(key: string, task: () => Promise<void>): Promise<void> {
+    const settled = this.runOnce(`refresh:${key}`, task).catch(() => undefined)
+    if (process.env.NODE_ENV === 'test') await settled
+  }
+
   /* ---------------- list / search / filters ---------------- */
 
   async list(params: AnimeListParams): Promise<PagedResult<AnimeCardView>> {
@@ -171,6 +211,38 @@ export class AnimeService {
       return cached.value
     }
 
+    // Local-first: a mirrored slice of the catalog answers immediately and AniList refreshes
+    // it afterwards. Text search stays upstream-first because relevance ordering is AniList's
+    // and the mirror cannot reproduce it. A partial mirror page would misreport the catalog
+    // (wrong total, empty next pages), so the mirror only answers when it can fill the page.
+    if (!params.q?.trim()) {
+      const local = await this.listFromLocal(params, page, perPage).catch(() => null)
+      if (local && local.items.length >= perPage) {
+        this.caches.list.set(key, { at: Date.now(), value: local })
+        await this.refresh(`list:${key}`, async () => {
+          this.caches.list.set(key, { at: Date.now(), value: await this.fetchPage(params, page, perPage, sort) })
+        })
+        return local
+      }
+    }
+
+    let result: PagedResult<AnimeCardView>
+    try {
+      result = await this.runOnce(`list:${key}`, () => this.fetchPage(params, page, perPage, sort))
+    } catch (error) {
+      if (!(error instanceof AniListError)) throw error
+      result = await this.listFromLocal(params, page, perPage)
+    }
+    this.caches.list.set(key, { at: Date.now(), value: result })
+    return result
+  }
+
+  private async fetchPage(
+    params: AnimeListParams,
+    page: number,
+    perPage: number,
+    sort: string,
+  ): Promise<PagedResult<AnimeCardView>> {
     const variables: Record<string, unknown> = {
       page,
       perPage,
@@ -184,28 +256,21 @@ export class AnimeService {
       sort: [sort],
     }
 
-    let result: PagedResult<AnimeCardView>
-    try {
-      const data = mediaPageSchema.parse(await this.options.client.query(MEDIA_PAGE_QUERY, variables))
-      const cards = (data.Page.media ?? []).map(normalizeMediaCard)
-      result = {
-        items: cards.map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring)),
-        total: data.Page.pageInfo.total ?? 0,
-        page,
-        perPage,
-        hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
-      }
-      // Persist in background so user doesn't wait 10+ seconds for batch database upserts (sync in tests)
-      if (process.env.NODE_ENV === 'test') {
-        await this.persistMediaCards(cards)
-      } else {
-        void this.persistMediaCards(cards).catch(() => {})
-      }
-    } catch (error) {
-      if (!(error instanceof AniListError)) throw error
-      result = await this.listFromLocal(params, page, perPage)
+    const data = mediaPageSchema.parse(await this.options.client.query(MEDIA_PAGE_QUERY, variables))
+    const cards = (data.Page.media ?? []).map(normalizeMediaCard)
+    const result: PagedResult<AnimeCardView> = {
+      items: cards.map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring)),
+      total: data.Page.pageInfo.total ?? 0,
+      page,
+      perPage,
+      hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
     }
-    this.caches.list.set(key, { at: Date.now(), value: result })
+    // Persist in background so user doesn't wait 10+ seconds for batch database upserts (sync in tests)
+    if (process.env.NODE_ENV === 'test') {
+      await this.persistMediaCards(cards)
+    } else {
+      void this.persistMediaCards(cards).catch(() => {})
+    }
     return result
   }
 
@@ -279,54 +344,26 @@ export class AnimeService {
     }
 
     const local = await this.findLocalAnime(externalId)
-    if (!local || !local.description || this.isStale(local.lastSyncedAt, this.ttl.detail)) {
-      try {
-        if (process.env.NODE_ENV === 'test') {
-          const detail = await this.fetchDetail(externalId)
-          if (detail) await this.persistDetail(detail)
-        } else {
-          const basic = await this.fetchBasicDetail(externalId)
-          if (basic) {
-            const communityRating = await this.communityRating(externalId).catch(() => ({ average: null, count: 0 }))
-            const resultView: AnimeDetailView = {
-              id: basic.id,
-              title: {
-                romaji: basic.title?.romaji ?? '',
-                english: basic.title?.english ?? null,
-                native: basic.title?.native ?? null,
-              },
-              coverImage: basic.coverImage?.large ?? basic.coverImage?.extraLarge ?? null,
-              bannerImage: basic.bannerImage ?? null,
-              format: basic.format ?? null,
-              status: basic.status ?? null,
-              episodes: basic.episodes ?? null,
-              duration: basic.duration ?? null,
-              season: basic.season ?? null,
-              seasonYear: basic.seasonYear ?? null,
-              averageScore: basic.averageScore ?? null,
-              popularity: basic.popularity ?? null,
-              trending: basic.trending ?? null,
-              source: basic.source ?? null,
-              country: basic.countryOfOrigin ?? null,
-              startDate: basic.startDate?.year ? `${basic.startDate.year}-${String(basic.startDate.month || 1).padStart(2, '0')}-${String(basic.startDate.day || 1).padStart(2, '0')}` : null,
-              endDate: basic.endDate?.year ? `${basic.endDate.year}-${String(basic.endDate.month || 1).padStart(2, '0')}-${String(basic.endDate.day || 1).padStart(2, '0')}` : null,
-              genres: (basic.genres ?? []).filter((g: any) => typeof g === 'string' && g !== 'Hentai'),
-              studios: (basic.studios?.nodes ?? []).map((s: any) => s.name),
-              nextAiring: basic.nextAiringEpisode?.episode && basic.nextAiringEpisode?.airingAt ? { episode: basic.nextAiringEpisode.episode, airingAt: basic.nextAiringEpisode.airingAt } : null,
-              description: basic.description ?? null,
-              communityRating,
-              charactersTotal: 0,
-              staffTotal: 0,
-            }
+    const complete = Boolean(local?.description)
 
-            this.caches.list.set(key, { at: Date.now(), value: resultView as unknown as PagedResult<AnimeCardView> })
-            return resultView
-          }
-        }
+    if (!complete) {
+      // Nothing usable mirrored yet: pay for the full detail payload once, persist it, then
+      // fall through to the local read so this page and every later one is served by Postgres.
+      try {
+        const detail = await this.runOnce(`detail:${externalId}`, () => this.fetchDetail(externalId))
+        if (detail) await this.persistDetail(detail)
       } catch (error) {
-        if (!(error instanceof AniListError)) throw error
+        // A schema surprise or an upstream outage must not blank a page the mirror can serve.
         if (!local) throw error
       }
+    } else if (this.isStale(local.lastSyncedAt, this.ttl.detail)) {
+      await this.refresh(`detail:${externalId}`, async () => {
+        const detail = await this.fetchDetail(externalId)
+        if (detail) {
+          await this.persistDetail(detail)
+          this.caches.list.delete(key)
+        }
+      })
     }
 
     const row = (await this.findLocalAnime(externalId)) ?? local
@@ -400,53 +437,82 @@ export class AnimeService {
     externalId: number,
     page = 1,
     perPage = 25,
-  ): Promise<PagedResult<{ id: number; name: string; nameNative: string | null; image: string | null; role: string; voiceActor: { name: string; language: string } | null }>> {
+  ): Promise<PagedResult<CharacterView>> {
     const key = `chars:${externalId}:${page}:${perPage}`
     const cached = this.caches.chars.get(key)
     if (cached && Date.now() - cached.at < this.ttl.detail) {
       return cached.value
     }
 
+    const mirrored = await this.characterCount(externalId)
+    if (mirrored > 0) {
+      const local = await this.localCharacters(externalId, page, perPage, mirrored)
+      this.caches.chars.set(key, { at: Date.now(), value: local })
+      await this.refresh(`chars:${key}`, async () => {
+        const fresh = await this.fetchUpstreamCharacters(externalId, page, perPage)
+        if (fresh) this.caches.chars.set(key, { at: Date.now(), value: fresh })
+      })
+      return local
+    }
+
     try {
-      const data = (await this.options.client.query(MEDIA_CHARACTERS_QUERY, {
-        id: externalId,
-        page,
-        perPage,
-      })) as any
-
-      const charData = data?.Media?.characters
-      if (charData?.edges) {
-        const items = charData.edges.map((edge: any) => {
-          const node = edge.node || {}
-          const va = edge.voiceActors?.[0]
-          return {
-            id: node.id,
-            name: node.name?.full ?? 'Unknown',
-            nameNative: node.name?.native ?? null,
-            image: node.image?.large ?? null,
-            role: edge.role ?? 'SUPPORTING',
-            voiceActor: va ? { name: va.name?.full ?? 'Unknown', language: 'Japanese' } : null,
-          }
-        })
-
-        const total = charData.pageInfo?.total ?? items.length
-        const result: PagedResult<{ id: number; name: string; nameNative: string | null; image: string | null; role: string; voiceActor: { name: string; language: string } | null }> = {
-          items,
-          total,
-          page,
-          perPage,
-          hasNextPage: charData.pageInfo?.hasNextPage ?? false,
-        }
-
-        this.caches.chars.set(key, { at: Date.now(), value: result })
-        return result
+      const upstream = await this.runOnce(`chars:${key}`, () =>
+        this.fetchUpstreamCharacters(externalId, page, perPage),
+      )
+      if (upstream) {
+        this.caches.chars.set(key, { at: Date.now(), value: upstream })
+        return upstream
       }
     } catch {
       // Fallback to local DB if upstream unavailable
     }
 
-    const local = await this.findLocalAnime(externalId)
     const freshCount = await this.characterCount(externalId)
+    return this.localCharacters(externalId, page, perPage, freshCount)
+  }
+
+  private async fetchUpstreamCharacters(
+    externalId: number,
+    page: number,
+    perPage: number,
+  ): Promise<PagedResult<CharacterView> | null> {
+    const data = (await this.options.client.query(MEDIA_CHARACTERS_QUERY, {
+      id: externalId,
+      page,
+      perPage,
+    })) as any
+
+    const charData = data?.Media?.characters
+    if (!charData?.edges) return null
+    const items = charData.edges.map((edge: any) => {
+      const node = edge.node || {}
+      const va = edge.voiceActors?.[0]
+      return {
+        id: node.id,
+        name: node.name?.full ?? 'Unknown',
+        nameNative: node.name?.native ?? null,
+        image: node.image?.large ?? null,
+        role: edge.role ?? 'SUPPORTING',
+        voiceActor: va ? { name: va.name?.full ?? 'Unknown', language: 'Japanese' } : null,
+      }
+    })
+
+    return {
+      items,
+      total: charData.pageInfo?.total ?? items.length,
+      page,
+      perPage,
+      hasNextPage: charData.pageInfo?.hasNextPage ?? false,
+    }
+  }
+
+  private async localCharacters(
+    externalId: number,
+    page: number,
+    perPage: number,
+    total: number,
+  ): Promise<PagedResult<CharacterView>> {
+    const local = await this.findLocalAnime(externalId)
     const rows = await this.db
       .select({
         id: characters.externalId,
@@ -476,40 +542,34 @@ export class AnimeService {
           ? { name: r.voiceActorName, language: r.voiceActorLanguage ?? 'Japanese' }
           : null,
       })),
-      total: freshCount,
+      total,
       page,
       perPage,
-      hasNextPage: page * perPage < freshCount && freshCount > 0,
+      hasNextPage: page * perPage < total && total > 0,
     }
   }
 
-  async staff(externalId: number): Promise<{ id: number; name: string; nameNative: string | null; image: string | null; role: string }[]> {
+  async staff(externalId: number): Promise<StaffView[]> {
     const key = `staff:${externalId}`
     const cached = this.caches.staff.get(key)
     if (cached && Date.now() - cached.at < this.ttl.detail) {
       return cached.value
     }
 
+    const mirrored = await this.staffCount(externalId)
+    if (mirrored > 0) {
+      const local = await this.localStaff(externalId)
+      this.caches.staff.set(key, { at: Date.now(), value: local })
+      await this.refresh(`staff:${externalId}`, async () => {
+        const fresh = await this.fetchUpstreamStaff(externalId)
+        if (fresh) this.caches.staff.set(key, { at: Date.now(), value: fresh })
+      })
+      return local
+    }
+
     try {
-      const data = (await this.options.client.query(MEDIA_STAFF_QUERY, {
-        id: externalId,
-        page: 1,
-        perPage: 25,
-      })) as any
-
-      const staffData = data?.Media?.staff
-      if (staffData?.edges) {
-        const items = staffData.edges.map((edge: any) => {
-          const node = edge.node || {}
-          return {
-            id: node.id,
-            name: node.name?.full ?? 'Unknown',
-            nameNative: node.name?.native ?? null,
-            image: node.image?.large ?? null,
-            role: edge.role ?? 'Staff',
-          }
-        })
-
+      const items = await this.runOnce(`staff:${externalId}`, () => this.fetchUpstreamStaff(externalId))
+      if (items) {
         this.caches.staff.set(key, { at: Date.now(), value: items })
         return items
       }
@@ -517,8 +577,33 @@ export class AnimeService {
       // Fallback to local DB
     }
 
+    return this.localStaff(externalId)
+  }
+
+  private async fetchUpstreamStaff(externalId: number): Promise<StaffView[] | null> {
+    const data = (await this.options.client.query(MEDIA_STAFF_QUERY, {
+      id: externalId,
+      page: 1,
+      perPage: 25,
+    })) as any
+
+    const staffData = data?.Media?.staff
+    if (!staffData?.edges) return null
+    return staffData.edges.map((edge: any) => {
+      const node = edge.node || {}
+      return {
+        id: node.id,
+        name: node.name?.full ?? 'Unknown',
+        nameNative: node.name?.native ?? null,
+        image: node.image?.large ?? null,
+        role: edge.role ?? 'Staff',
+      }
+    })
+  }
+
+  private async localStaff(externalId: number): Promise<StaffView[]> {
     const local = await this.findLocalAnime(externalId)
-    const rows = await this.db
+    return this.db
       .select({
         id: staff.externalId,
         name: staff.name,
@@ -530,7 +615,6 @@ export class AnimeService {
       .innerJoin(staff, eq(staff.id, animeStaff.staffId))
       .where(eq(animeStaff.animeId, local?.id ?? 0))
       .orderBy(animeStaff.role)
-    return rows
   }
 
   async relations(
@@ -699,6 +783,7 @@ export class AnimeService {
           }
         }
       } catch {
+        // fall back to the empty page below
       }
 
       return {
@@ -712,18 +797,6 @@ export class AnimeService {
   }
 
   /* ---------------- upstream helpers ---------------- */
-
-  private async fetchBasicDetail(externalId: number): Promise<any | null> {
-    const started = Date.now()
-    try {
-      const data = (await this.options.client.query(MEDIA_BASIC_DETAIL_QUERY, { id: externalId })) as any
-      await this.logSync('anime.basic_detail', String(externalId), 'success', Date.now() - started)
-      return data?.Media ?? null
-    } catch (error) {
-      await this.logSync('anime.basic_detail', String(externalId), 'error', Date.now() - started, error instanceof Error ? error.message : 'unknown error')
-      throw error
-    }
-  }
 
   private async fetchDetail(
     externalId: number,
@@ -1238,39 +1311,109 @@ export class AnimeService {
     const cached = this.caches.list.get(key)
     if (cached && Date.now() - cached.at < this.ttl.airing) return cached.value
 
-    const variables = { page, perPage, status: 'RELEASING', sort: ['POPULARITY_DESC'] }
+    const local = await this.localAiring(page, perPage).catch(() => null)
+    if (local && local.items.length > 0) {
+      this.caches.list.set(key, { at: Date.now(), value: local })
+      await this.refresh(`airing:${key}`, async () => {
+        this.caches.list.set(key, { at: Date.now(), value: await this.fetchAiring(page, perPage) })
+      })
+      return local
+    }
+
     let result: PagedResult<AnimeCardView>
     try {
-      const data = mediaPageSchema.parse(await this.options.client.query(MEDIA_PAGE_QUERY, variables))
-      const cards = (data.Page.media ?? []).map(normalizeMediaCard)
-      result = {
-        items: cards.map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring)).filter((a) => a.nextAiring),
-        total: data.Page.pageInfo.total ?? 0,
-        page,
-        perPage,
-        hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
-      }
-      if (process.env.NODE_ENV === 'test') {
-        await this.persistMediaCards(cards)
-      } else {
-        void this.persistMediaCards(cards).catch(() => {})
-      }
+      result = await this.runOnce(`airing:${key}`, () => this.fetchAiring(page, perPage))
     } catch (error) {
       if (!(error instanceof AniListError)) throw error
-      const rows = await this.db
-        .selectDistinctOn([anime.id], { id: anime.id })
-        .from(anime)
-        .innerJoin(airingSchedule, eq(airingSchedule.animeId, anime.id))
-        .where(sql`${airingSchedule.airingAt} > now()`)
-        .orderBy(anime.id, sql`${airingSchedule.airingAt} ASC`)
-        .limit(perPage)
-        .offset((page - 1) * perPage)
-      const list = await this.db.select().from(anime).where(inArray(anime.id, rows.map((r) => r.id)))
-      const decorated = await this.decorateWithRelations(list)
-      result = { items: decorated.filter((a) => a.nextAiring), total: rows.length, page, perPage, hasNextPage: page * perPage < rows.length }
+      result = await this.localAiring(page, perPage)
     }
     this.caches.list.set(key, { at: Date.now(), value: result })
     return result
+  }
+
+  private async fetchAiring(page: number, perPage: number): Promise<PagedResult<AnimeCardView>> {
+    const variables = { page, perPage, status: 'RELEASING', sort: ['POPULARITY_DESC'] }
+    const data = mediaPageSchema.parse(await this.options.client.query(MEDIA_PAGE_QUERY, variables))
+    const cards = (data.Page.media ?? []).map(normalizeMediaCard)
+    const result: PagedResult<AnimeCardView> = {
+      items: cards.map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring)).filter((a) => a.nextAiring),
+      total: data.Page.pageInfo.total ?? 0,
+      page,
+      perPage,
+      hasNextPage: data.Page.pageInfo.hasNextPage ?? false,
+    }
+    if (process.env.NODE_ENV === 'test') {
+      await this.persistMediaCards(cards)
+    } else {
+      void this.persistMediaCards(cards).catch(() => {})
+    }
+    return result
+  }
+
+  private async localAiring(page: number, perPage: number): Promise<PagedResult<AnimeCardView>> {
+    const rows = await this.db
+      .selectDistinctOn([anime.id], { id: anime.id })
+      .from(anime)
+      .innerJoin(airingSchedule, eq(airingSchedule.animeId, anime.id))
+      .where(sql`${airingSchedule.airingAt} > now()`)
+      .orderBy(anime.id, sql`${airingSchedule.airingAt} ASC`)
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+    const list = await this.db.select().from(anime).where(inArray(anime.id, rows.map((r) => r.id)))
+    const decorated = await this.decorateWithRelations(list)
+    return {
+      items: decorated.filter((a) => a.nextAiring),
+      total: rows.length,
+      page,
+      perPage,
+      hasNextPage: page * perPage < rows.length,
+    }
+  }
+
+  /**
+   * Fills the mirror with the entry points every visitor hits, so those requests are answered
+   * from Postgres instead of waiting on AniList. Called once per server instance, after boot,
+   * and skipped while the mirror is already fresh.
+   */
+  async warmCatalog(): Promise<void> {
+    if (process.env.NODE_ENV === 'test') return
+    try {
+      const [latest] = await this.db
+        .select({ syncedAt: sql<Date | null>`max(${anime.lastSyncedAt})` })
+        .from(anime)
+      const syncedAt = latest?.syncedAt ? new Date(latest.syncedAt).getTime() : 0
+      if (Date.now() - syncedAt < 30 * 60 * 1000) return
+
+      const now = new Date()
+      const month = now.getMonth()
+      // Same season rule the home page uses (apps/web/src/pages/HomePage.tsx).
+      const season = month >= 2 && month <= 4 ? 'SPRING' : month <= 1 ? 'WINTER' : month <= 7 ? 'SUMMER' : 'FALL'
+      const targets: AnimeListParams[] = [
+        { sort: 'TRENDING', limit: 24 },
+        { sort: 'POPULARITY', limit: 24 },
+        { sort: 'SCORE', limit: 24 },
+        { season, year: now.getFullYear() },
+        { sort: 'TRENDING', limit: 20, page: 2 },
+      ]
+
+      for (const params of targets) {
+        try {
+          const page = params.page ?? 1
+          const perPage = Math.min(params.limit ?? 20, 50)
+          const sort = SORT_MAP[params.sort ?? ''] ?? DEFAULT_LIST_SORT
+          await this.runOnce(`warm:${JSON.stringify(params)}`, () => this.fetchPage(params, page, perPage, sort))
+        } catch {
+          // best effort: warmup never affects request handling
+        }
+      }
+      try {
+        await this.runOnce('warm:airing', () => this.fetchAiring(1, 20))
+      } catch {
+        // best effort
+      }
+    } catch {
+      // warmup never affects request handling
+    }
   }
 
   private async logSync(operation: string, target: string, status: 'success' | 'error', durationMs: number, message?: string): Promise<void> {

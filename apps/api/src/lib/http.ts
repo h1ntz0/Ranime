@@ -5,6 +5,19 @@ export function sendData<T>(reply: FastifyReply, data: T, meta?: Record<string, 
   return reply.send(meta ? { data, meta } : { data })
 }
 
+/**
+ * Rate-limit key for a request behind the Vercel proxy. Behind a proxy every socket shares one
+ * address, so without reading the forwarding headers the global limit throttles the whole site.
+ * The right-most hop is the one the edge appended: client-supplied entries sit to its left and
+ * cannot be used to forge a fresh bucket.
+ */
+export function clientKey(headers: Record<string, string | string[] | undefined>, fallback: string): string {
+  const forwarded = headers['x-forwarded-for']
+  const last = (Array.isArray(forwarded) ? forwarded[forwarded.length - 1] : forwarded)?.split(',').pop()?.trim()
+  const real = headers['x-real-ip']
+  return last || (Array.isArray(real) ? real[0] : real) || fallback
+}
+
 export function sendPage<T>(reply: FastifyReply, page: PagedResult<T>) {
   return reply.send({
     data: {
