@@ -6,6 +6,7 @@ import { AppError } from '../lib/errors.js'
 import { slugify } from '../lib/slug.js'
 import { AniListClient, AniListError } from '../integrations/anilist/client.js'
 import {
+  MEDIA_BASIC_DETAIL_QUERY,
   MEDIA_CHARACTERS_QUERY,
   MEDIA_DETAIL_QUERY,
   MEDIA_PAGE_QUERY,
@@ -13,8 +14,10 @@ import {
   MEDIA_STAFF_QUERY,
 } from '../integrations/anilist/queries.js'
 import {
+  mediaBasicDetailSchema,
   mediaDetailSchema,
   mediaPageSchema,
+  type AniListMediaBasicDetail,
   type AniListMediaDetail,
 } from '../integrations/anilist/schemas.js'
 import {
@@ -389,27 +392,44 @@ export class AnimeService {
     const complete = Boolean(local?.description)
 
     if (!complete) {
-      // Nothing usable mirrored yet. Answer from the upstream payload and persist afterwards:
-      // waiting for the write transaction would stall the first view of every unseen title.
+      // Unmirrored title: ask for the full payload, but do not let a throttled AniList hold the
+      // page. The lighter query answers when the full one misses its deadline, and the full one
+      // keeps running so the mirror gets filled for later views.
       const upstream = this.runOnce(`detail:${externalId}`, () => this.fetchDetail(externalId))
       let detail: AniListMediaDetail | null = null
       try {
         detail = await this.withDeadline(upstream)
-      } catch (error) {
-        if (!(error instanceof AniListError)) throw error
+      } catch {
+        // A schema surprise or an upstream outage is the light query's job to cover below.
+        void upstream.catch(() => undefined)
       }
-      if (!detail) void upstream.catch(() => undefined)
-      // With nothing mirrored the source is the only answer, however slow it is.
-      if (!detail && !local) detail = await upstream
 
       if (detail) {
         const payload = detail
-        const view = await this.detailViewFromPayload(externalId, payload)
+        const view = await this.detailViewFromPayload(externalId, payload, {
+          characters: payload.characters?.pageInfo?.total ?? 0,
+          staff: payload.staff?.pageInfo?.total ?? 0,
+        })
         this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
         await this.refresh(`persist:${externalId}`, async () => {
           await this.persistDetail(payload)
         })
         return view
+      }
+
+      if (!local) {
+        void upstream.catch(() => undefined)
+        const basic = await this.fetchBasicDetail(externalId)
+        if (basic) {
+          const view = await this.detailViewFromPayload(externalId, basic)
+          this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
+          // The full payload is what fills characters/staff/relations in the mirror.
+          await this.refresh(`persist:${externalId}`, async () => {
+            const full = await upstream
+            if (full) await this.persistDetail(full)
+          })
+          return view
+        }
       }
     } else if (this.isStale(local.lastSyncedAt, this.ttl.detail)) {
       await this.refresh(`detail:${externalId}`, async () => {
@@ -448,45 +468,46 @@ export class AnimeService {
   /** Builds the detail view straight from an AniList payload, without waiting on the mirror write. */
   private async detailViewFromPayload(
     externalId: number,
-    detail: NonNullable<AniListMediaDetail>,
+    media: AniListMediaBasicDetail,
+    totals: { characters: number; staff: number } = { characters: 0, staff: 0 },
   ): Promise<AnimeDetailView> {
     const date = (value: { year: number | null; month: number | null; day: number | null }): string | null =>
       value.year ? `${value.year}-${String(value.month ?? 1).padStart(2, '0')}-${String(value.day ?? 1).padStart(2, '0')}` : null
     const communityRating = await this.communityRating(externalId).catch(() => ({ average: null, count: 0 }))
-    const nextAiring = detail.nextAiringEpisode
+    const nextAiring = media.nextAiringEpisode
 
     return {
-      id: detail.id,
+      id: media.id,
       title: {
-        romaji: detail.title?.romaji ?? '',
-        english: detail.title?.english ?? null,
-        native: detail.title?.native ?? null,
+        romaji: media.title?.romaji ?? '',
+        english: media.title?.english ?? null,
+        native: media.title?.native ?? null,
       },
-      coverImage: detail.coverImage?.extraLarge ?? detail.coverImage?.large ?? null,
-      bannerImage: detail.bannerImage ?? null,
-      format: detail.format ?? null,
-      status: detail.status ?? null,
-      episodes: detail.episodes ?? null,
-      duration: detail.duration ?? null,
-      season: detail.season ?? null,
-      seasonYear: detail.seasonYear ?? null,
-      averageScore: detail.averageScore ?? null,
-      popularity: detail.popularity ?? null,
-      trending: detail.trending ?? null,
-      startDate: date(detail.startDate),
-      endDate: date(detail.endDate),
-      source: detail.source ?? null,
-      country: detail.countryOfOrigin ?? null,
-      genres: (detail.genres ?? []).filter((g) => g !== 'Hentai'),
-      studios: (detail.studios?.nodes ?? []).map((s) => s.name),
+      coverImage: media.coverImage?.extraLarge ?? media.coverImage?.large ?? null,
+      bannerImage: media.bannerImage ?? null,
+      format: media.format ?? null,
+      status: media.status ?? null,
+      episodes: media.episodes ?? null,
+      duration: media.duration ?? null,
+      season: media.season ?? null,
+      seasonYear: media.seasonYear ?? null,
+      averageScore: media.averageScore ?? null,
+      popularity: media.popularity ?? null,
+      trending: media.trending ?? null,
+      startDate: date(media.startDate),
+      endDate: date(media.endDate),
+      source: media.source ?? null,
+      country: media.countryOfOrigin ?? null,
+      genres: (media.genres ?? []).filter((g) => g !== 'Hentai'),
+      studios: (media.studios?.nodes ?? []).map((s) => s.name),
       nextAiring:
         nextAiring?.episode != null && nextAiring.airingAt != null
           ? { episode: nextAiring.episode, airingAt: nextAiring.airingAt }
           : null,
-      description: detail.description ?? null,
+      description: media.description ?? null,
       communityRating,
-      charactersTotal: detail.characters?.pageInfo?.total ?? 0,
-      staffTotal: detail.staff?.pageInfo?.total ?? 0,
+      charactersTotal: totals.characters,
+      staffTotal: totals.staff,
     }
   }
 
@@ -897,6 +918,19 @@ export class AnimeService {
   }
 
   /* ---------------- upstream helpers ---------------- */
+
+  /** Lighter than the full detail query, so it survives AniList throttling the heavy one does not. */
+  private async fetchBasicDetail(externalId: number): Promise<AniListMediaBasicDetail | null> {
+    const started = Date.now()
+    try {
+      const data = mediaBasicDetailSchema.parse(await this.options.client.query(MEDIA_BASIC_DETAIL_QUERY, { id: externalId }))
+      await this.logSync('anime.basic_detail', String(externalId), 'success', Date.now() - started)
+      return data.Media
+    } catch (error) {
+      await this.logSync('anime.basic_detail', String(externalId), 'error', Date.now() - started, error instanceof Error ? error.message : 'unknown error')
+      throw error
+    }
+  }
 
   private async fetchDetail(
     externalId: number,

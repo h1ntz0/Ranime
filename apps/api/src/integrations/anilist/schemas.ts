@@ -137,8 +137,18 @@ export const mediaDetailSchema = z.object({
     .nullable(),
 })
 
+export const mediaBasicDetailSchema = z.object({
+  Media: mediaCardSchema
+    .extend({
+      siteUrl: z.string().nullable(),
+      description: z.string().nullable(),
+    })
+    .nullable(),
+})
+
 export type AniListMediaCard = z.infer<typeof mediaCardSchema>
 export type AniListMediaDetail = z.infer<typeof mediaDetailSchema>['Media']
+export type AniListMediaBasicDetail = NonNullable<z.infer<typeof mediaBasicDetailSchema>['Media']>
 export type AniListCharacterEdge = z.infer<typeof characterEdgeSchema>
 export type AniListStaffEdge = z.infer<typeof staffEdgeSchema>
 export type AniListRelationEdge = z.infer<typeof relationEdgeSchema>

@@ -20,7 +20,7 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
 
   const pool = new pg.Pool({
     connectionString: cleanUrl,
-    max: isCloud ? 2 : 10,
+    max: isCloud ? 4 : 10,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: isCloud ? 15000 : 5000,
     keepAlive: true,
