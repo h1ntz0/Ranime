@@ -1,10 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { sendData, sendPage } from '../../lib/http.js'
+import { animeIdParamSchema, pageQuerySchema, sendData, sendPage } from '../../lib/http.js'
 import { optionalAuth } from '../auth/helpers.js'
 import type { ReviewService } from './service.js'
 
-const idParamSchema = z.object({ id: z.coerce.number().int().positive() })
 const reviewIdParamSchema = z.object({ id: z.string().uuid() })
 
 function sanitizeText(str: string): string {
@@ -35,11 +34,6 @@ const reviewBodySchema = z
     message: 'Rating must be between 1 and 10 in steps of 0.5',
   })
 
-const pageQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(50).optional(),
-})
-
 export async function reviewRoutes(
   app: FastifyInstance,
   reviewService: ReviewService,
@@ -51,7 +45,7 @@ export async function reviewRoutes(
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
-      const { id } = idParamSchema.parse(request.params)
+      const { id } = animeIdParamSchema.parse(request.params)
       const input = reviewBodySchema.parse(request.body)
       const review = await reviewService.create(request.user!.id, id, input)
       return reply.code(201).send({ data: review })
@@ -78,22 +72,30 @@ export async function reviewRoutes(
     return reply.code(204).send()
   })
 
-  app.get('/anime/:id/reviews', { preHandler: optionalAuth(app.authService) }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
-    const query = pageQuerySchema.parse(request.query)
-    const result = await reviewService.listForAnime(id, query.page ?? 1, query.limit ?? 10, {
-      hideSpoilers: true,
-      excludeUserId: request.user?.id,
-    })
-    return sendPage(reply, result)
-  })
+  app.get(
+    '/anime/:id/reviews',
+    { preHandler: optionalAuth(app.authService) },
+    async (request, reply) => {
+      const { id } = animeIdParamSchema.parse(request.params)
+      const query = pageQuerySchema.parse(request.query)
+      const result = await reviewService.listForAnime(id, query.page ?? 1, query.limit ?? 10, {
+        hideSpoilers: true,
+        excludeUserId: request.user?.id,
+      })
+      return sendPage(reply, result)
+    },
+  )
 
-  app.get('/anime/:id/reviews/mine', { preHandler: optionalAuth(app.authService) }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
-    if (!request.user) return sendData(reply, null)
-    const review = await reviewService.myReview(request.user.id, id)
-    return sendData(reply, review)
-  })
+  app.get(
+    '/anime/:id/reviews/mine',
+    { preHandler: optionalAuth(app.authService) },
+    async (request, reply) => {
+      const { id } = animeIdParamSchema.parse(request.params)
+      if (!request.user) return sendData(reply, null)
+      const review = await reviewService.myReview(request.user.id, id)
+      return sendData(reply, review)
+    },
+  )
 
   app.get('/reviews/recent', async (request, reply) => {
     const query = pageQuerySchema.parse(request.query)
@@ -103,7 +105,11 @@ export async function reviewRoutes(
 
   app.get('/reviews/me', { preHandler: app.requireAuth }, async (request, reply) => {
     const query = pageQuerySchema.parse(request.query)
-    const result = await reviewService.myReviews(request.user!.id, query.page ?? 1, query.limit ?? 10)
+    const result = await reviewService.myReviews(
+      request.user!.id,
+      query.page ?? 1,
+      query.limit ?? 10,
+    )
     return sendPage(reply, result)
   })
 }

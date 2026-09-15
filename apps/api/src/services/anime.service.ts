@@ -127,6 +127,13 @@ export const DEFAULT_LIST_SORT = 'TRENDING_DESC'
 /** How long a response waits on AniList before the mirror answers instead. */
 const UPSTREAM_DEADLINE_MS = 1200
 
+/**
+ * Per-map ceiling for the process-local caches below. Their keys embed public query strings, so
+ * without a cap a crawler walks distinct values of `q`/`page` and grows the map until the
+ * instance runs out of memory.
+ */
+const CACHE_MAX_ENTRIES = 500
+
 export interface AnimeServiceOptions {
   client: AniListClient
   pool: Pool
@@ -165,6 +172,14 @@ export class AnimeService {
     staff: new Map<string, { at: number; value: any }>(),
     genres: null as { at: number; value: Genre[] } | null,
     studios: null as { at: number; value: { name: string; slug: string; count: number }[] } | null,
+  }
+
+  private setCapped<K, V>(map: Map<K, V>, key: K, value: V): void {
+    if (map.size >= CACHE_MAX_ENTRIES && !map.has(key)) {
+      const oldest = map.keys().next().value
+      if (oldest !== undefined) map.delete(oldest)
+    }
+    map.set(key, value)
   }
 
   constructor(private options: AnimeServiceOptions) {
@@ -240,12 +255,14 @@ export class AnimeService {
     if (params.q?.trim()) {
       let searched: PagedResult<AnimeCardView>
       try {
-        searched = await this.runOnce(`list:${key}`, () => this.fetchPage(params, page, perPage, sort))
+        searched = await this.runOnce(`list:${key}`, () =>
+          this.fetchPage(params, page, perPage, sort),
+        )
       } catch (error) {
         if (!(error instanceof AniListError)) throw error
         searched = await this.listFromLocal(params, page, perPage)
       }
-      this.caches.list.set(key, { at: Date.now(), value: searched })
+      this.setCapped(this.caches.list, key, { at: Date.now(), value: searched })
       return searched
     }
 
@@ -261,14 +278,16 @@ export class AnimeService {
       if (!(error instanceof AniListError)) throw error
     }
     if (result) {
-      this.caches.list.set(key, { at: Date.now(), value: result })
+      this.setCapped(this.caches.list, key, { at: Date.now(), value: result })
       return result
     }
 
     const local = await mirror
     if (local && local.items.length > 0) {
       // The source missed this caller's deadline; hand the next one its finished page.
-      void upstream.then((fresh) => this.caches.list.set(key, { at: Date.now(), value: fresh })).catch(() => undefined)
+      void upstream
+        .then((fresh) => this.setCapped(this.caches.list, key, { at: Date.now(), value: fresh }))
+        .catch(() => undefined)
       return local
     }
 
@@ -278,7 +297,7 @@ export class AnimeService {
       if (!(error instanceof AniListError)) throw error
       result = await this.listFromLocal(params, page, perPage)
     }
-    this.caches.list.set(key, { at: Date.now(), value: result })
+    this.setCapped(this.caches.list, key, { at: Date.now(), value: result })
     return result
   }
 
@@ -324,14 +343,21 @@ export class AnimeService {
     page: number,
     perPage: number,
   ): Promise<PagedResult<AnimeCardView>> {
-    if (params.q) throw new AppError(503, 'UPSTREAM_UNAVAILABLE', 'Anime search is temporarily unavailable. Please try again later.')
+    if (params.q)
+      throw new AppError(
+        503,
+        'UPSTREAM_UNAVAILABLE',
+        'Anime search is temporarily unavailable. Please try again later.',
+      )
     const conditions: any[] = []
     if (params.genre) conditions.push(eq(genres.slug, slugify(params.genre)))
     if (params.year) conditions.push(eq(anime.seasonYear, params.year))
     if (params.season) conditions.push(eq(anime.season, params.season.toUpperCase()))
     if (params.format) conditions.push(eq(anime.format, params.format.toUpperCase()))
-    if (params.status) conditions.push(eq(anime.status, params.status.toUpperCase().replace(/\s+/g, '_')))
-    if (params.minScore) conditions.push(sql`${anime.averageScore} >= ${Math.round(params.minScore * 10)}`)
+    if (params.status)
+      conditions.push(eq(anime.status, params.status.toUpperCase().replace(/\s+/g, '_')))
+    if (params.minScore)
+      conditions.push(sql`${anime.averageScore} >= ${Math.round(params.minScore * 10)}`)
 
     const sort = SORT_MAP[params.sort ?? ''] ?? DEFAULT_LIST_SORT
     const orderBy: Record<string, ReturnType<typeof desc>> = {
@@ -365,7 +391,12 @@ export class AnimeService {
         ? await this.db
             .select()
             .from(anime)
-            .where(inArray(anime.id, pagedIds.map((p) => p.id)))
+            .where(
+              inArray(
+                anime.id,
+                pagedIds.map((p) => p.id),
+              ),
+            )
             .orderBy(orderBy[sort] ?? desc(anime.popularity))
         : []
 
@@ -410,7 +441,10 @@ export class AnimeService {
           characters: payload.characters?.pageInfo?.total ?? 0,
           staff: payload.staff?.pageInfo?.total ?? 0,
         })
-        this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
+        this.setCapped(this.caches.list, key, {
+          at: Date.now(),
+          value: view as unknown as PagedResult<AnimeCardView>,
+        })
         await this.refresh(`persist:${externalId}`, async () => {
           await this.persistDetail(payload)
         })
@@ -422,7 +456,10 @@ export class AnimeService {
         const basic = await this.fetchBasicDetail(externalId)
         if (basic) {
           const view = await this.detailViewFromPayload(externalId, basic)
-          this.caches.list.set(key, { at: Date.now(), value: view as unknown as PagedResult<AnimeCardView> })
+          this.setCapped(this.caches.list, key, {
+            at: Date.now(),
+            value: view as unknown as PagedResult<AnimeCardView>,
+          })
           // The full payload is what fills characters/staff/relations in the mirror.
           await this.refresh(`persist:${externalId}`, async () => {
             const full = await upstream
@@ -461,7 +498,10 @@ export class AnimeService {
       charactersTotal: characterCount,
       staffTotal: staffCount,
     }
-    this.caches.list.set(key, { at: Date.now(), value: resultView as unknown as PagedResult<AnimeCardView> })
+    this.setCapped(this.caches.list, key, {
+      at: Date.now(),
+      value: resultView as unknown as PagedResult<AnimeCardView>,
+    })
     return resultView
   }
 
@@ -471,9 +511,18 @@ export class AnimeService {
     media: AniListMediaBasicDetail,
     totals: { characters: number; staff: number } = { characters: 0, staff: 0 },
   ): Promise<AnimeDetailView> {
-    const date = (value: { year: number | null; month: number | null; day: number | null }): string | null =>
-      value.year ? `${value.year}-${String(value.month ?? 1).padStart(2, '0')}-${String(value.day ?? 1).padStart(2, '0')}` : null
-    const communityRating = await this.communityRating(externalId).catch(() => ({ average: null, count: 0 }))
+    const date = (value: {
+      year: number | null
+      month: number | null
+      day: number | null
+    }): string | null =>
+      value.year
+        ? `${value.year}-${String(value.month ?? 1).padStart(2, '0')}-${String(value.day ?? 1).padStart(2, '0')}`
+        : null
+    const communityRating = await this.communityRating(externalId).catch(() => ({
+      average: null,
+      count: 0,
+    }))
     const nextAiring = media.nextAiringEpisode
 
     return {
@@ -511,7 +560,9 @@ export class AnimeService {
     }
   }
 
-  async compare(externalIds: number[]): Promise<(AnimeCardView & { communityRating: { average: number | null; count: number } })[]> {
+  async compare(
+    externalIds: number[],
+  ): Promise<(AnimeCardView & { communityRating: { average: number | null; count: number } })[]> {
     if (externalIds.length === 0) return []
 
     // 1. Fetch missing anime from upstream if not found locally with max 3s timeout per missing
@@ -551,7 +602,9 @@ export class AnimeService {
       }),
     )
 
-    return results.filter(Boolean) as (AnimeCardView & { communityRating: { average: number | null; count: number } })[]
+    return results.filter(Boolean) as (AnimeCardView & {
+      communityRating: { average: number | null; count: number }
+    })[]
   }
 
   async characters(
@@ -568,10 +621,10 @@ export class AnimeService {
     const mirrored = await this.characterCount(externalId)
     if (mirrored > 0) {
       const local = await this.localCharacters(externalId, page, perPage, mirrored)
-      this.caches.chars.set(key, { at: Date.now(), value: local })
+      this.setCapped(this.caches.chars, key, { at: Date.now(), value: local })
       await this.refresh(`chars:${key}`, async () => {
         const fresh = await this.fetchUpstreamCharacters(externalId, page, perPage)
-        if (fresh) this.caches.chars.set(key, { at: Date.now(), value: fresh })
+        if (fresh) this.setCapped(this.caches.chars, key, { at: Date.now(), value: fresh })
       })
       return local
     }
@@ -581,7 +634,7 @@ export class AnimeService {
         this.fetchUpstreamCharacters(externalId, page, perPage),
       )
       if (upstream) {
-        this.caches.chars.set(key, { at: Date.now(), value: upstream })
+        this.setCapped(this.caches.chars, key, { at: Date.now(), value: upstream })
         return upstream
       }
     } catch {
@@ -680,18 +733,20 @@ export class AnimeService {
     const mirrored = await this.staffCount(externalId)
     if (mirrored > 0) {
       const local = await this.localStaff(externalId)
-      this.caches.staff.set(key, { at: Date.now(), value: local })
+      this.setCapped(this.caches.staff, key, { at: Date.now(), value: local })
       await this.refresh(`staff:${externalId}`, async () => {
         const fresh = await this.fetchUpstreamStaff(externalId)
-        if (fresh) this.caches.staff.set(key, { at: Date.now(), value: fresh })
+        if (fresh) this.setCapped(this.caches.staff, key, { at: Date.now(), value: fresh })
       })
       return local
     }
 
     try {
-      const items = await this.runOnce(`staff:${externalId}`, () => this.fetchUpstreamStaff(externalId))
+      const items = await this.runOnce(`staff:${externalId}`, () =>
+        this.fetchUpstreamStaff(externalId),
+      )
       if (items) {
-        this.caches.staff.set(key, { at: Date.now(), value: items })
+        this.setCapped(this.caches.staff, key, { at: Date.now(), value: items })
         return items
       }
     } catch {
@@ -738,9 +793,7 @@ export class AnimeService {
       .orderBy(animeStaff.role)
   }
 
-  async relations(
-    externalId: number,
-  ): Promise<{ relationType: string; anime: AnimeCardView }[]> {
+  async relations(externalId: number): Promise<{ relationType: string; anime: AnimeCardView }[]> {
     const key = `relations:${externalId}`
     const cached = this.caches.list.get(key)
     if (cached && Date.now() - cached.at < this.ttl.detail) {
@@ -748,7 +801,9 @@ export class AnimeService {
     }
 
     try {
-      const data = (await this.options.client.query(MEDIA_RELATIONS_QUERY, { id: externalId })) as any
+      const data = (await this.options.client.query(MEDIA_RELATIONS_QUERY, {
+        id: externalId,
+      })) as any
       const edges = data?.Media?.relations?.edges
       if (edges) {
         const items = edges.map((edge: any) => {
@@ -784,7 +839,7 @@ export class AnimeService {
           }
         })
 
-        this.caches.list.set(key, { at: Date.now(), value: items as any })
+        this.setCapped(this.caches.list, key, { at: Date.now(), value: items as any })
         return items
       }
     } catch {
@@ -812,7 +867,9 @@ export class AnimeService {
       )
     const decorated = await this.decorateWithRelations(relatedAnime)
     const byExternalId = new Map(decorated.map((a) => [a.id, a]))
-    const externalByInternalId = new Map<number, number>(relatedAnime.map((a: any) => [a.id, a.externalId]))
+    const externalByInternalId = new Map<number, number>(
+      relatedAnime.map((a: any) => [a.id, a.externalId]),
+    )
     const out: { relationType: string; anime: AnimeCardView }[] = []
     for (const r of rows) {
       const animeCard = byExternalId.get(externalByInternalId.get(r.relatedId) ?? -1)
@@ -846,7 +903,10 @@ export class AnimeService {
         cards.push(
           normalizeMediaCard({
             ...rec,
-            coverImage: { extraLarge: rec.coverImage?.large ?? null, large: rec.coverImage?.large ?? null },
+            coverImage: {
+              extraLarge: rec.coverImage?.large ?? null,
+              large: rec.coverImage?.large ?? null,
+            },
             bannerImage: null,
             startDate: { year: null, month: null, day: null },
             endDate: { year: null, month: null, day: null },
@@ -870,7 +930,7 @@ export class AnimeService {
         perPage,
         hasNextPage: (detail?.recommendations?.pageInfo?.total ?? 0) > page * perPage,
       }
-      this.caches.recs.set(key, { at: Date.now(), value: result })
+      this.setCapped(this.caches.recs, key, { at: Date.now(), value: result })
       return result
     } catch {
       try {
@@ -898,7 +958,7 @@ export class AnimeService {
                 perPage,
                 hasNextPage: false,
               }
-              this.caches.recs.set(key, { at: Date.now(), value: fallbackResult })
+              this.setCapped(this.caches.recs, key, { at: Date.now(), value: fallbackResult })
               return fallbackResult
             }
           }
@@ -923,11 +983,19 @@ export class AnimeService {
   private async fetchBasicDetail(externalId: number): Promise<AniListMediaBasicDetail | null> {
     const started = Date.now()
     try {
-      const data = mediaBasicDetailSchema.parse(await this.options.client.query(MEDIA_BASIC_DETAIL_QUERY, { id: externalId }))
+      const data = mediaBasicDetailSchema.parse(
+        await this.options.client.query(MEDIA_BASIC_DETAIL_QUERY, { id: externalId }),
+      )
       await this.logSync('anime.basic_detail', String(externalId), 'success', Date.now() - started)
       return data.Media
     } catch (error) {
-      await this.logSync('anime.basic_detail', String(externalId), 'error', Date.now() - started, error instanceof Error ? error.message : 'unknown error')
+      await this.logSync(
+        'anime.basic_detail',
+        String(externalId),
+        'error',
+        Date.now() - started,
+        error instanceof Error ? error.message : 'unknown error',
+      )
       throw error
     }
   }
@@ -952,16 +1020,20 @@ export class AnimeService {
       await this.logSync('anime.detail', String(externalId), 'success', Date.now() - started)
       return data.Media
     } catch (error) {
-      await this.logSync('anime.detail', String(externalId), 'error', Date.now() - started, error instanceof Error ? error.message : 'unknown error')
+      await this.logSync(
+        'anime.detail',
+        String(externalId),
+        'error',
+        Date.now() - started,
+        error instanceof Error ? error.message : 'unknown error',
+      )
       throw error
     }
   }
 
   /* ---------------- persistence ---------------- */
 
-  private async persistMediaCards(
-    cards: ReturnType<typeof normalizeMediaCard>[],
-  ): Promise<void> {
+  private async persistMediaCards(cards: ReturnType<typeof normalizeMediaCard>[]): Promise<void> {
     if (cards.length === 0) return
     await this.db.transaction(async (tx) => {
       const animeRows = cards.map((c) => ({ ...c.anime, lastSyncedAt: new Date() }))
@@ -1006,7 +1078,10 @@ export class AnimeService {
     const names = [...new Set(cards.flatMap((c) => c.genres))]
     if (names.length === 0) return
     const slugs = names.map(slugify)
-    const existing = await tx.select({ id: genres.id, slug: genres.slug }).from(genres).where(inArray(genres.slug, slugs))
+    const existing = await tx
+      .select({ id: genres.id, slug: genres.slug })
+      .from(genres)
+      .where(inArray(genres.slug, slugs))
     const known = new Map(existing.map((g) => [g.slug, g.id]))
     const missing = slugs.filter((s) => !known.has(s))
     if (missing.length > 0) {
@@ -1015,20 +1090,33 @@ export class AnimeService {
         .values(missing.map((s) => ({ name: names[slugs.indexOf(s)]!, slug: s })))
         .onConflictDoNothing({ target: genres.slug })
     }
-    const all = await tx.select({ id: genres.id, slug: genres.slug }).from(genres).where(inArray(genres.slug, slugs))
+    const all = await tx
+      .select({ id: genres.id, slug: genres.slug })
+      .from(genres)
+      .where(inArray(genres.slug, slugs))
     const idBySlug = new Map(all.map((g) => [g.slug, g.id]))
 
     const extIds = cards.map((c) => c.anime.externalId)
-    const localRows = await tx.select({ id: anime.id, externalId: anime.externalId }).from(anime).where(inArray(anime.externalId, extIds))
+    const localRows = await tx
+      .select({ id: anime.id, externalId: anime.externalId })
+      .from(anime)
+      .where(inArray(anime.externalId, extIds))
     const idByExt = new Map(localRows.map((r) => [r.externalId, r.id]))
 
     const joins = cards.flatMap((c) => {
       const animeId = idByExt.get(c.anime.externalId)
       if (!animeId) return []
-      return c.genres.map((name) => ({ animeId, genreId: idBySlug.get(slugify(name)) })).filter((j): j is { animeId: number; genreId: number } => j.genreId !== undefined)
+      return c.genres
+        .map((name) => ({ animeId, genreId: idBySlug.get(slugify(name)) }))
+        .filter((j): j is { animeId: number; genreId: number } => j.genreId !== undefined)
     })
     if (joins.length > 0) {
-      await tx.delete(animeGenres).where(inArray(animeGenres.animeId, joins.map((j) => j.animeId)))
+      await tx.delete(animeGenres).where(
+        inArray(
+          animeGenres.animeId,
+          joins.map((j) => j.animeId),
+        ),
+      )
       await tx.insert(animeGenres).values(joins).onConflictDoNothing()
     }
   }
@@ -1039,17 +1127,29 @@ export class AnimeService {
   ): Promise<void> {
     const names = [...new Set(cards.flatMap((c) => c.studios))]
     if (names.length === 0) return
-    const existing = await tx.select({ id: studios.id, name: studios.name }).from(studios).where(inArray(studios.name, names))
+    const existing = await tx
+      .select({ id: studios.id, name: studios.name })
+      .from(studios)
+      .where(inArray(studios.name, names))
     const known = new Map(existing.map((s) => [s.name, s.id]))
     const missing = names.filter((n) => !known.has(n))
     if (missing.length > 0) {
-      await tx.insert(studios).values(missing.map((n) => ({ name: n }))).onConflictDoNothing({ target: studios.name })
+      await tx
+        .insert(studios)
+        .values(missing.map((n) => ({ name: n })))
+        .onConflictDoNothing({ target: studios.name })
     }
-    const all = await tx.select({ id: studios.id, name: studios.name }).from(studios).where(inArray(studios.name, names))
+    const all = await tx
+      .select({ id: studios.id, name: studios.name })
+      .from(studios)
+      .where(inArray(studios.name, names))
     const idByName = new Map(all.map((s) => [s.name, s.id]))
 
     const extIds = cards.map((c) => c.anime.externalId)
-    const localRows = await tx.select({ id: anime.id, externalId: anime.externalId }).from(anime).where(inArray(anime.externalId, extIds))
+    const localRows = await tx
+      .select({ id: anime.id, externalId: anime.externalId })
+      .from(anime)
+      .where(inArray(anime.externalId, extIds))
     const idByExt = new Map(localRows.map((r) => [r.externalId, r.id]))
 
     const joins = cards.flatMap((c) => {
@@ -1057,10 +1157,18 @@ export class AnimeService {
       if (!animeId) return []
       return c.studios
         .map((name) => ({ animeId, studioId: idByName.get(name), isMain: true }))
-        .filter((j): j is { animeId: number; studioId: number; isMain: boolean } => j.studioId !== undefined)
+        .filter(
+          (j): j is { animeId: number; studioId: number; isMain: boolean } =>
+            j.studioId !== undefined,
+        )
     })
     if (joins.length > 0) {
-      await tx.delete(animeStudios).where(inArray(animeStudios.animeId, joins.map((j) => j.animeId)))
+      await tx.delete(animeStudios).where(
+        inArray(
+          animeStudios.animeId,
+          joins.map((j) => j.animeId),
+        ),
+      )
       await tx.insert(animeStudios).values(joins).onConflictDoNothing()
     }
   }
@@ -1072,18 +1180,30 @@ export class AnimeService {
     const withAiring = cards.filter((c) => c.nextAiring !== null)
     if (withAiring.length === 0) return
     const extIds = withAiring.map((c) => c.anime.externalId)
-    const localRows = await tx.select({ id: anime.id, externalId: anime.externalId }).from(anime).where(inArray(anime.externalId, extIds))
+    const localRows = await tx
+      .select({ id: anime.id, externalId: anime.externalId })
+      .from(anime)
+      .where(inArray(anime.externalId, extIds))
     const idByExt = new Map(localRows.map((r) => [r.externalId, r.id]))
     const rows = withAiring.flatMap((c) => {
       const animeId = idByExt.get(c.anime.externalId)
       if (!animeId || !c.nextAiring) return []
-      return [{ animeId, episode: c.nextAiring.episode, airingAt: new Date(c.nextAiring.airingAt * 1000) }]
+      return [
+        {
+          animeId,
+          episode: c.nextAiring.episode,
+          airingAt: new Date(c.nextAiring.airingAt * 1000),
+        },
+      ]
     })
     if (rows.length > 0) {
       await tx
         .insert(airingSchedule)
         .values(rows)
-        .onConflictDoUpdate({ target: [airingSchedule.animeId, airingSchedule.episode], set: { airingAt: sql`excluded.airing_at` } })
+        .onConflictDoUpdate({
+          target: [airingSchedule.animeId, airingSchedule.episode],
+          set: { airingAt: sql`excluded.airing_at` },
+        })
     }
   }
 
@@ -1094,7 +1214,10 @@ export class AnimeService {
       await tx
         .insert(anime)
         .values({ ...media.anime, lastSyncedAt: new Date() })
-        .onConflictDoUpdate({ target: anime.externalId, set: { ...media.anime, lastSyncedAt: sql`now()` } })
+        .onConflictDoUpdate({
+          target: anime.externalId,
+          set: { ...media.anime, lastSyncedAt: sql`now()` },
+        })
 
       await this.syncGenres(tx, [media])
       await this.syncStudios(tx, [media])
@@ -1103,8 +1226,22 @@ export class AnimeService {
       if (charRows.length > 0) {
         await tx
           .insert(characters)
-          .values(charRows.map((c) => ({ externalId: c.externalId, name: c.name, nameNative: c.nameNative, image: c.image })))
-          .onConflictDoUpdate({ target: characters.externalId, set: { name: sql`excluded.name`, nameNative: sql`excluded.name_native`, image: sql`excluded.image` } })
+          .values(
+            charRows.map((c) => ({
+              externalId: c.externalId,
+              name: c.name,
+              nameNative: c.nameNative,
+              image: c.image,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: characters.externalId,
+            set: {
+              name: sql`excluded.name`,
+              nameNative: sql`excluded.name_native`,
+              image: sql`excluded.image`,
+            },
+          })
       }
       const vaRows = charRows.flatMap((c) => (c.voiceActor ? [c.voiceActor] : []))
       const allStaffRows = [...vaRows, ...staffRows]
@@ -1121,23 +1258,55 @@ export class AnimeService {
               image: s.image,
             })),
           )
-          .onConflictDoUpdate({ target: staff.externalId, set: { name: sql`excluded.name`, nameNative: sql`excluded.name_native`, image: sql`excluded.image` } })
+          .onConflictDoUpdate({
+            target: staff.externalId,
+            set: {
+              name: sql`excluded.name`,
+              nameNative: sql`excluded.name_native`,
+              image: sql`excluded.image`,
+            },
+          })
       }
 
-      const local = (await tx.select({ id: anime.id, externalId: anime.externalId }).from(anime).where(eq(anime.externalId, detail.id)))[0]
+      const local = (
+        await tx
+          .select({ id: anime.id, externalId: anime.externalId })
+          .from(anime)
+          .where(eq(anime.externalId, detail.id))
+      )[0]
       if (local) {
-        const charIds = (
-          await tx.select({ id: characters.id, externalId: characters.externalId }).from(characters).where(inArray(characters.externalId, charRows.map((c) => c.externalId)))
-        )
+        const charIds = await tx
+          .select({ id: characters.id, externalId: characters.externalId })
+          .from(characters)
+          .where(
+            inArray(
+              characters.externalId,
+              charRows.map((c) => c.externalId),
+            ),
+          )
         const charIdByExt = new Map(charIds.map((c) => [c.externalId, c.id]))
-        const vaIds = (
-          await tx.select({ id: staff.id, externalId: staff.externalId }).from(staff).where(inArray(staff.externalId, vaRows.map((v) => v.externalId)))
-        )
+        const vaIds = await tx
+          .select({ id: staff.id, externalId: staff.externalId })
+          .from(staff)
+          .where(
+            inArray(
+              staff.externalId,
+              vaRows.map((v) => v.externalId),
+            ),
+          )
         const vaIdByExt = new Map(vaIds.map((v) => [v.externalId, v.id]))
         const charJoins = charRows.flatMap((c) => {
           const characterId = charIdByExt.get(c.externalId)
           if (!characterId) return []
-          return [{ animeId: local.id, characterId, role: c.role, voiceActorId: c.voiceActor ? vaIdByExt.get(c.voiceActor.externalId) ?? null : null, voiceActorLanguage: c.voiceActor ? 'Japanese' : null }]
+          return [
+            {
+              animeId: local.id,
+              characterId,
+              role: c.role,
+              voiceActorId: c.voiceActor ? (vaIdByExt.get(c.voiceActor.externalId) ?? null) : null,
+              voiceActorLanguage: c.voiceActor ? 'Japanese' : null,
+            },
+          ]
         })
         await tx.delete(animeCharacters).where(
           charJoins.length > 0
@@ -1150,11 +1319,18 @@ export class AnimeService {
               )
             : eq(animeCharacters.animeId, local.id),
         )
-        if (charJoins.length > 0) await tx.insert(animeCharacters).values(charJoins).onConflictDoNothing()
+        if (charJoins.length > 0)
+          await tx.insert(animeCharacters).values(charJoins).onConflictDoNothing()
 
-        const staffIds = (
-          await tx.select({ id: staff.id, externalId: staff.externalId }).from(staff).where(inArray(staff.externalId, staffRows.map((s) => s.externalId)))
-        )
+        const staffIds = await tx
+          .select({ id: staff.id, externalId: staff.externalId })
+          .from(staff)
+          .where(
+            inArray(
+              staff.externalId,
+              staffRows.map((s) => s.externalId),
+            ),
+          )
         const staffIdByExt = new Map(staffIds.map((s) => [s.externalId, s.id]))
         const staffJoins = staffRows.flatMap((s) => {
           const staffId = staffIdByExt.get(s.externalId)
@@ -1162,26 +1338,48 @@ export class AnimeService {
           return [{ animeId: local.id, staffId, role: s.role }]
         })
         await tx.delete(animeStaff).where(eq(animeStaff.animeId, local.id))
-        if (staffJoins.length > 0) await tx.insert(animeStaff).values(staffJoins).onConflictDoNothing()
+        if (staffJoins.length > 0)
+          await tx.insert(animeStaff).values(staffJoins).onConflictDoNothing()
       }
 
       if (relRows.length > 0) {
         await tx
           .insert(anime)
           .values(relRows.map((r) => ({ ...r.related, lastSyncedAt: new Date() })))
-          .onConflictDoUpdate({ target: anime.externalId, set: { titleRomaji: sql`excluded.title_romaji`, titleEnglish: sql`excluded.title_english`, titleNative: sql`excluded.title_native`, coverImage: sql`excluded.cover_image`, format: sql`excluded.format`, status: sql`excluded.status`, episodes: sql`excluded.episodes`, averageScore: sql`excluded.average_score` } })
-        const relatedLocal = (
-          await tx.select({ id: anime.id, externalId: anime.externalId }).from(anime).where(inArray(anime.externalId, relRows.map((r) => r.relatedExternalId)))
-        )
+          .onConflictDoUpdate({
+            target: anime.externalId,
+            set: {
+              titleRomaji: sql`excluded.title_romaji`,
+              titleEnglish: sql`excluded.title_english`,
+              titleNative: sql`excluded.title_native`,
+              coverImage: sql`excluded.cover_image`,
+              format: sql`excluded.format`,
+              status: sql`excluded.status`,
+              episodes: sql`excluded.episodes`,
+              averageScore: sql`excluded.average_score`,
+            },
+          })
+        const relatedLocal = await tx
+          .select({ id: anime.id, externalId: anime.externalId })
+          .from(anime)
+          .where(
+            inArray(
+              anime.externalId,
+              relRows.map((r) => r.relatedExternalId),
+            ),
+          )
         const idByExt = new Map(relatedLocal.map((r) => [r.externalId, r.id]))
         const relJoins = relRows.flatMap((r) => {
           const relatedId = idByExt.get(r.relatedExternalId)
           if (!relatedId) return []
-          return [{ animeId: local?.id ?? 0, relatedAnimeId: relatedId, relationType: r.relationType }]
+          return [
+            { animeId: local?.id ?? 0, relatedAnimeId: relatedId, relationType: r.relationType },
+          ]
         })
         if (local) {
           await tx.delete(animeRelations).where(eq(animeRelations.animeId, local.id))
-          if (relJoins.length > 0) await tx.insert(animeRelations).values(relJoins).onConflictDoNothing()
+          if (relJoins.length > 0)
+            await tx.insert(animeRelations).values(relJoins).onConflictDoNothing()
         }
       }
     })
@@ -1198,7 +1396,9 @@ export class AnimeService {
     return Date.now() - lastSyncedAt.getTime() > ttlMs
   }
 
-  private async communityRating(externalId: number): Promise<{ average: number | null; count: number }> {
+  private async communityRating(
+    externalId: number,
+  ): Promise<{ average: number | null; count: number }> {
     const local = await this.findLocalAnime(externalId)
     if (!local) return { average: null, count: 0 }
     const [row] = await this.db
@@ -1215,7 +1415,12 @@ export class AnimeService {
     const local = await this.findLocalAnime(externalId)
     if (!local) return 0
     return (
-      (await this.db.select({ n: sql<number>`count(*)::int` }).from(animeCharacters).where(eq(animeCharacters.animeId, local.id)))[0]?.n ?? 0
+      (
+        await this.db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(animeCharacters)
+          .where(eq(animeCharacters.animeId, local.id))
+      )[0]?.n ?? 0
     )
   }
 
@@ -1223,7 +1428,12 @@ export class AnimeService {
     const local = await this.findLocalAnime(externalId)
     if (!local) return 0
     return (
-      (await this.db.select({ n: sql<number>`count(*)::int` }).from(animeStaff).where(eq(animeStaff.animeId, local.id)))[0]?.n ?? 0
+      (
+        await this.db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(animeStaff)
+          .where(eq(animeStaff.animeId, local.id))
+      )[0]?.n ?? 0
     )
   }
 
@@ -1242,7 +1452,11 @@ export class AnimeService {
         .innerJoin(studios, eq(studios.id, animeStudios.studioId))
         .where(inArray(animeStudios.animeId, ids)),
       this.db
-        .select({ animeId: airingSchedule.animeId, episode: airingSchedule.episode, airingAt: airingSchedule.airingAt })
+        .select({
+          animeId: airingSchedule.animeId,
+          episode: airingSchedule.episode,
+          airingAt: airingSchedule.airingAt,
+        })
         .from(airingSchedule)
         .where(inArray(airingSchedule.animeId, ids)),
     ])
@@ -1261,10 +1475,18 @@ export class AnimeService {
     const airingByAnime = new Map<number, { episode: number; airingAt: number }>()
     for (const a of airingRows) {
       if (!a.episode || !a.airingAt) continue
-      airingByAnime.set(a.animeId, { episode: a.episode, airingAt: Math.floor(a.airingAt.getTime() / 1000) })
+      airingByAnime.set(a.animeId, {
+        episode: a.episode,
+        airingAt: Math.floor(a.airingAt.getTime() / 1000),
+      })
     }
     return rows.map((r) =>
-      this.toCardView(r, genresByAnime.get(r.id) ?? [], studiosByAnime.get(r.id) ?? [], airingByAnime.get(r.id) ?? null),
+      this.toCardView(
+        r,
+        genresByAnime.get(r.id) ?? [],
+        studiosByAnime.get(r.id) ?? [],
+        airingByAnime.get(r.id) ?? null,
+      ),
     )
   }
 
@@ -1382,7 +1604,7 @@ export class AnimeService {
         { name: 'Shaft', slug: 'shaft', count: 5 },
         { name: 'ufotable', slug: 'ufotable', count: 5 },
         { name: 'Bandai Namco Pictures', slug: 'bandai-namco-pictures', count: 4 },
-        { name: 'Brain\'s Base', slug: 'brains-base', count: 4 },
+        { name: "Brain's Base", slug: 'brains-base', count: 4 },
         { name: 'david production', slug: 'david-production', count: 4 },
         { name: 'Kyoto Animation', slug: 'kyoto-animation', count: 4 },
         { name: 'SILVER LINK.', slug: 'silver-link', count: 4 },
@@ -1409,10 +1631,12 @@ export class AnimeService {
     if (!studio) return { items: [], total: 0, page, perPage, hasNextPage: false }
 
     const total =
-      (await this.db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(animeStudios)
-        .where(eq(animeStudios.studioId, studio.id)))[0]?.n ?? 0
+      (
+        await this.db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(animeStudios)
+          .where(eq(animeStudios.studioId, studio.id))
+      )[0]?.n ?? 0
 
     const paged = await this.db
       .select({ id: animeStudios.animeId })
@@ -1427,7 +1651,12 @@ export class AnimeService {
     const rows = await this.db
       .select()
       .from(anime)
-      .where(inArray(anime.id, paged.map((p) => p.id)))
+      .where(
+        inArray(
+          anime.id,
+          paged.map((p) => p.id),
+        ),
+      )
       .orderBy(desc(anime.popularity))
     const decorated = await this.decorateWithRelations(rows)
 
@@ -1455,13 +1684,15 @@ export class AnimeService {
       if (!(error instanceof AniListError)) throw error
     }
     if (result) {
-      this.caches.list.set(key, { at: Date.now(), value: result })
+      this.setCapped(this.caches.list, key, { at: Date.now(), value: result })
       return result
     }
 
     const local = await mirror
     if (local && local.items.length > 0) {
-      void upstream.then((fresh) => this.caches.list.set(key, { at: Date.now(), value: fresh })).catch(() => undefined)
+      void upstream
+        .then((fresh) => this.setCapped(this.caches.list, key, { at: Date.now(), value: fresh }))
+        .catch(() => undefined)
       return local
     }
 
@@ -1471,7 +1702,7 @@ export class AnimeService {
       if (!(error instanceof AniListError)) throw error
       result = await this.localAiring(page, perPage)
     }
-    this.caches.list.set(key, { at: Date.now(), value: result })
+    this.setCapped(this.caches.list, key, { at: Date.now(), value: result })
     return result
   }
 
@@ -1480,7 +1711,9 @@ export class AnimeService {
     const data = mediaPageSchema.parse(await this.options.client.query(MEDIA_PAGE_QUERY, variables))
     const cards = (data.Page.media ?? []).map(normalizeMediaCard)
     const result: PagedResult<AnimeCardView> = {
-      items: cards.map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring)).filter((a) => a.nextAiring),
+      items: cards
+        .map((c) => this.toCardView(c.anime, c.genres, c.studios, c.nextAiring))
+        .filter((a) => a.nextAiring),
       total: data.Page.pageInfo.total ?? 0,
       page,
       perPage,
@@ -1503,7 +1736,15 @@ export class AnimeService {
       .orderBy(anime.id, sql`${airingSchedule.airingAt} ASC`)
       .limit(perPage)
       .offset((page - 1) * perPage)
-    const list = await this.db.select().from(anime).where(inArray(anime.id, rows.map((r) => r.id)))
+    const list = await this.db
+      .select()
+      .from(anime)
+      .where(
+        inArray(
+          anime.id,
+          rows.map((r) => r.id),
+        ),
+      )
     const decorated = await this.decorateWithRelations(list)
     return {
       items: decorated.filter((a) => a.nextAiring),
@@ -1514,7 +1755,13 @@ export class AnimeService {
     }
   }
 
-  private async logSync(operation: string, target: string, status: 'success' | 'error', durationMs: number, message?: string): Promise<void> {
+  private async logSync(
+    operation: string,
+    target: string,
+    status: 'success' | 'error',
+    durationMs: number,
+    message?: string,
+  ): Promise<void> {
     try {
       await this.db
         .insert(syncLogs)

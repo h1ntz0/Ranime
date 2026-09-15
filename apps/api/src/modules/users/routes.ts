@@ -2,8 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import argon2 from 'argon2'
 import { AppError, notFound, unauthorized } from '../../lib/errors.js'
-import { sendData, sendPage } from '../../lib/http.js'
-import { toPublicUser } from '../auth/helpers.js'
+import { sendData, sendPage, pageQuerySchema } from '../../lib/http.js'
+import { toPublicUser, setSessionCookie } from '../auth/helpers.js'
 import type { AuthService } from '../auth/service.js'
 import type { ActivityService } from '../activity/service.js'
 
@@ -14,7 +14,10 @@ const updateProfileSchema = z
       .trim()
       .min(3)
       .max(32)
-      .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain alphanumeric characters, underscores, and hyphens')
+      .regex(
+        /^[a-zA-Z0-9_-]+$/,
+        'Username can only contain alphanumeric characters, underscores, and hyphens',
+      )
       .optional(),
     email: z.string().trim().toLowerCase().email().optional(),
   })
@@ -29,7 +32,10 @@ const changePasswordSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .max(200)
     .refine((v) => !/password/i.test(v), 'Password must not contain "password"')
-    .refine((v) => /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v), 'Password must include uppercase, lowercase, and a number')
+    .refine(
+      (v) => /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v),
+      'Password must include uppercase, lowercase, and a number',
+    )
     .refine((v) => /[^A-Za-z0-9]/.test(v), 'Password must include at least one symbol'),
 })
 
@@ -38,7 +44,8 @@ export async function usersRoutes(
   authService: AuthService,
   activityService?: ActivityService,
 ): Promise<void> {
-  app.get('/users/:username', async (request, reply) => {    const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
+  app.get('/users/:username', async (request, reply) => {
+    const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
     const user = await authService.getUserByUsername(username)
     if (!user) throw notFound(`User "${username}" not found`)
 
@@ -68,7 +75,10 @@ export async function usersRoutes(
       stats: {
         animeCount: stats?.anime_count ?? 0,
         completedCount: stats?.completed_count ?? 0,
-        averageRating: stats?.average_rating !== null && stats?.average_rating !== undefined ? Number(stats.average_rating) : null,
+        averageRating:
+          stats?.average_rating !== null && stats?.average_rating !== undefined
+            ? Number(stats.average_rating)
+            : null,
         episodesWatched: stats?.episodes_watched ?? 0,
       },
     })
@@ -116,7 +126,14 @@ export async function usersRoutes(
       created_at: Date
     }
 
-    return sendData(reply, toPublicUser({ ...updated, avatarUrl: updated.avatar_url, createdAt: new Date(updated.created_at) }))
+    return sendData(
+      reply,
+      toPublicUser({
+        ...updated,
+        avatarUrl: updated.avatar_url,
+        createdAt: new Date(updated.created_at),
+      }),
+    )
   })
 
   app.post(
@@ -137,14 +154,26 @@ export async function usersRoutes(
 
       const buffer = await part.toBuffer()
       if (buffer.length === 0) throw new AppError(422, 'VALIDATION_ERROR', 'Avatar file is empty')
-      if (buffer.length > 4.5 * 1024 * 1024) {
-        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 4.5 MB')
+      // The browser compresses before upload, so a legitimate avatar is ~60 KB. Anything much
+      // larger is a direct-to-API upload, and base64 inflates whatever is stored by a third and
+      // it is then inlined into every list response that mentions the user.
+      if (buffer.length > 256 * 1024) {
+        throw new AppError(422, 'VALIDATION_ERROR', 'Avatar must be under 256 KB')
       }
 
       // Validate magic bytes to prevent polyglot / fake mime types
-      const isJpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
-      const isPng = buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47
-      const isWebp = buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP'
+      const isJpeg =
+        buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+      const isPng =
+        buffer.length >= 8 &&
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47
+      const isWebp =
+        buffer.length >= 12 &&
+        buffer.toString('ascii', 0, 4) === 'RIFF' &&
+        buffer.toString('ascii', 8, 12) === 'WEBP'
 
       if (!isJpeg && !isPng && !isWebp) {
         throw new AppError(422, 'VALIDATION_ERROR', 'File is not a valid image format')
@@ -172,36 +201,42 @@ export async function usersRoutes(
       const input = changePasswordSchema.parse(request.body)
       const user = request.user!
       const row = (
-        await app.pool.query<{ password_hash: string }>(`SELECT password_hash FROM users WHERE id = $1`, [
-          user.id,
-        ])
+        await app.pool.query<{ password_hash: string }>(
+          `SELECT password_hash FROM users WHERE id = $1`,
+          [user.id],
+        )
       ).rows[0]
-    let valid = false
-    if (row && row.password_hash) {
-      try {
-        valid = await argon2.verify(row.password_hash, input.currentPassword)
-      } catch {
-        valid = false
+      let valid = false
+      if (row && row.password_hash) {
+        try {
+          valid = await argon2.verify(row.password_hash, input.currentPassword)
+        } catch {
+          valid = false
+        }
       }
-    }
-    if (!valid) throw unauthorized('Current password is incorrect')
+      if (!valid) throw unauthorized('Current password is incorrect')
 
       const hash = await argon2.hash(input.newPassword, { type: argon2.argon2id })
-      await app.pool.query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [
-        hash,
-        user.id,
-      ])
+      await app.pool.query(
+        `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+        [hash, user.id],
+      )
+      // The cookie carries a digest of the previous password hash, so without this the change
+      // would sign the caller out too. Re-issuing keeps this device in and evicts the rest.
+      setSessionCookie(reply, app.authService.signToken({ ...user, passwordHash: hash }), app.env)
       return reply.code(204).send()
     },
   )
 
   app.get('/users/:username/activity', async (request, reply) => {
     const { username } = z.object({ username: z.string().min(1).max(32) }).parse(request.params)
-    const query = z
-      .object({ page: z.coerce.number().int().min(1).optional(), limit: z.coerce.number().int().min(1).max(50).optional() })
-      .parse(request.query)
+    const query = pageQuerySchema.parse(request.query)
     if (!activityService) throw notFound('Activity is not available')
-    const result = await activityService.listByUsername(username, query.page ?? 1, query.limit ?? 20)
+    const result = await activityService.listByUsername(
+      username,
+      query.page ?? 1,
+      query.limit ?? 20,
+    )
     return sendPage(reply, result)
   })
 }

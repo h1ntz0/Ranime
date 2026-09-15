@@ -13,6 +13,20 @@ export interface AuthTokens {
   sign(userId: string): string
 }
 
+export interface TokenClaims {
+  userId: string
+  passwordVersion: string
+}
+
+/** Digest of the stored password hash; changes whenever the password does. */
+function passwordVersion(passwordHash: string | null | undefined): string {
+  return crypto
+    .createHash('sha256')
+    .update(passwordHash ?? 'no-password')
+    .digest('hex')
+    .slice(0, 16)
+}
+
 export class AuthService {
   private db: NodePgDatabase<Record<string, unknown>>
   private emailService?: EmailSender
@@ -46,20 +60,16 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id })
-    const isAdminEmail = email === 'admin@example.local'
     const [row] = await this.db
       .insert(users)
-      .values({ username, email, passwordHash, role: isAdminEmail ? 'ADMIN' : 'USER' })
+      .values({ username, email, passwordHash, role: 'USER' })
       .returning()
     return row!
   }
 
   async login(email: string, password: string): Promise<User> {
     const user = (
-      await this.db
-        .select()
-        .from(users)
-        .where(eq(users.email, email.trim().toLowerCase()))
+      await this.db.select().from(users).where(eq(users.email, email.trim().toLowerCase()))
     )[0]
     if (!user) throw unauthorized('Invalid email or password')
 
@@ -83,7 +93,6 @@ export class AuthService {
     avatarUrl?: string
   }): Promise<User> {
     const email = googleUser.email.trim().toLowerCase()
-    const isAdminEmail = email === 'admin@example.local'
 
     const [byGoogleId] = await this.db
       .select()
@@ -93,7 +102,6 @@ export class AuthService {
     if (byGoogleId) {
       const updates: Partial<typeof users.$inferInsert> = {}
       if (googleUser.avatarUrl && !byGoogleId.avatarUrl) updates.avatarUrl = googleUser.avatarUrl
-      if (isAdminEmail && byGoogleId.role !== 'ADMIN') updates.role = 'ADMIN'
 
       if (Object.keys(updates).length > 0) {
         const [updated] = await this.db
@@ -106,10 +114,7 @@ export class AuthService {
       return byGoogleId
     }
 
-    const [byEmail] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
+    const [byEmail] = await this.db.select().from(users).where(eq(users.email, email))
 
     if (byEmail) {
       const [updated] = await this.db
@@ -117,7 +122,6 @@ export class AuthService {
         .set({
           googleId: googleUser.googleId,
           avatarUrl: byEmail.avatarUrl ?? googleUser.avatarUrl,
-          role: isAdminEmail ? 'ADMIN' : byEmail.role,
           updatedAt: new Date(),
         })
         .where(eq(users.id, byEmail.id))
@@ -147,7 +151,7 @@ export class AuthService {
         username,
         email,
         googleId: googleUser.googleId,
-        role: isAdminEmail ? 'ADMIN' : 'USER',
+        role: 'USER',
         avatarUrl: googleUser.avatarUrl,
       })
       .returning()
@@ -163,18 +167,32 @@ export class AuthService {
   }
 
   signToken(user: User): string {
-    return jwt.sign({ sub: user.id }, this.options.jwtSecret, {
-      expiresIn: this.options.tokenTtl,
-    } as jwt.SignOptions)
+    return jwt.sign(
+      { sub: user.id, pv: passwordVersion(user.passwordHash) },
+      this.options.jwtSecret,
+      {
+        expiresIn: this.options.tokenTtl,
+      } as jwt.SignOptions,
+    )
   }
 
-  verifyToken(token: string): string | null {
+  verifyToken(token: string): TokenClaims | null {
     try {
-      const payload = jwt.verify(token, this.options.jwtSecret) as { sub?: string }
-      return payload.sub ?? null
+      const payload = jwt.verify(token, this.options.jwtSecret) as { sub?: string; pv?: string }
+      if (!payload.sub) return null
+      return { userId: payload.sub, passwordVersion: payload.pv ?? '' }
     } catch {
       return null
     }
+  }
+
+  /**
+   * A JWT stays valid for its full lifetime no matter what happens to the account, so a stolen
+   * cookie used to outlive the password change that was supposed to evict it. The token now
+   * carries a digest of the current password hash and is rejected once that hash moves on.
+   */
+  tokenMatches(claims: TokenClaims, user: User): boolean {
+    return claims.passwordVersion === passwordVersion(user.passwordHash)
   }
 
   async requestPasswordResetOtp(email: string): Promise<{ success: boolean; message: string }> {
@@ -186,7 +204,10 @@ export class AuthService {
       return { success: true, message: 'If that email exists, an OTP code has been sent.' }
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    // Math.random is xorshift128+, not a CSPRNG: its state is recoverable from observed outputs,
+    // which would make every future OTP predictable to anyone who can request codes for an
+    // account they control.
+    const otp = crypto.randomInt(100_000, 1_000_000).toString()
     const otpHash = crypto.createHash('sha256').update(otp).digest('hex')
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
 
@@ -210,10 +231,7 @@ export class AuthService {
     return { success: true, message: 'If that email exists, an OTP code has been sent.' }
   }
 
-  async verifyPasswordResetOtp(
-    email: string,
-    otp: string,
-  ): Promise<{ resetToken: string }> {
+  async verifyPasswordResetOtp(email: string, otp: string): Promise<{ resetToken: string }> {
     const cleanEmail = email.trim().toLowerCase()
     const otpHash = crypto.createHash('sha256').update(otp.trim()).digest('hex')
     const now = new Date()

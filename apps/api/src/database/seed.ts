@@ -1,13 +1,20 @@
+import { randomBytes } from 'node:crypto'
 import { hash } from 'argon2'
 import { sql } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { createPool } from './pool.js'
 import { genres, users } from './schema.js'
 
+/**
+ * Demo credentials come from the environment. A literal here would be published the moment this
+ * repository is public, and the same value would then work against every deployed environment.
+ * With nothing configured the password is random, which keeps a fresh checkout usable without
+ * shipping a known credential.
+ */
 export const DEMO_USER = {
-  username: 'demo',
-  email: 'demo@example.local',
-  password: 'REDACTED-PASSWORD',
+  username: process.env.SEED_DEMO_USERNAME?.trim() || 'demo',
+  email: (process.env.SEED_DEMO_EMAIL?.trim() || 'demo@example.local').toLowerCase(),
+  password: process.env.SEED_DEMO_PASSWORD || randomBytes(18).toString('base64url'),
 }
 
 /** Canonical AniList genre list used to seed the genre catalog. */
@@ -39,7 +46,10 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '')
 }
 
-export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase } = {}): Promise<string[]> {
+export async function runSeed(
+  databaseUrl: string,
+  opts: { db?: NodePgDatabase } = {},
+): Promise<string[]> {
   const pool = opts.db ? undefined : createPool(databaseUrl)
   try {
     const client = opts.db ?? drizzle(pool!)
@@ -55,32 +65,17 @@ export async function runSeed(databaseUrl: string, opts: { db?: NodePgDatabase }
       })
       .onConflictDoNothing({ target: users.email })
 
-    // Ensure dedicated admin account exists: strong password
-    const adminHash = await hash('REDACTED-PASSWORD')
-    await client
-      .insert(users)
-      .values({
-        username: 'arrofi',
-        email: 'admin@example.local',
-        passwordHash: adminHash,
-        role: 'ADMIN',
-      })
-      .onConflictDoNothing({ target: users.email })
-    // Rotate weak passwords to strong + ensure admin role (idempotent)
-    await client.execute(sql`UPDATE users SET password_hash = ${passwordHash}, updated_at = now() WHERE email = 'demo@example.local'`)
-    await client.execute(sql`UPDATE users SET password_hash = ${adminHash}, role = 'ADMIN', updated_at = now() WHERE email = 'admin@example.local'`)
-
+    // Existing rows are never rewritten: re-running the seed used to reset a live account's
+    // password back to a committed literal, which silently handed that account away.
     await client
       .insert(genres)
       .values(SEED_GENRES.map((name) => ({ name, slug: slugify(name) })))
       .onConflictDoNothing({ target: genres.slug })
 
-    const userCount = (
-      await client.select({ count: sql<number>`count(*)::int` }).from(users)
-    )[0]?.count
-    const genreCount = (
-      await client.select({ count: sql<number>`count(*)::int` }).from(genres)
-    )[0]?.count
+    const userCount = (await client.select({ count: sql<number>`count(*)::int` }).from(users))[0]
+      ?.count
+    const genreCount = (await client.select({ count: sql<number>`count(*)::int` }).from(genres))[0]
+      ?.count
 
     created.push(`users: ${userCount}`, `genres: ${genreCount}`)
     return created

@@ -23,3 +23,8 @@ PRD.md
 AGENTS.md
 docs/ai/
 
+
+# Security scan output — never commit captured cookies/tokens
+artifacts/
+# Database dumps (root-level only; database/migrations/*.sql stays tracked)
+/*.sql

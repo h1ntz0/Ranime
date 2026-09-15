@@ -1,13 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { sendData, sendPage } from '../../lib/http.js'
+import { MAX_PAGE, animeIdParamSchema, sendData, sendPage } from '../../lib/http.js'
 import { optionalAuth } from '../auth/helpers.js'
 import type { LibraryService, ListStatus } from '../library/service.js'
 import { LIST_STATUSES } from '../library/service.js'
 
 const listStatusEnum = z.enum(LIST_STATUSES as [ListStatus, ...ListStatus[]])
-
-const idParamSchema = z.object({ id: z.coerce.number().int().positive() })
 
 const watchlistBodySchema = z.object({
   status: listStatusEnum,
@@ -19,10 +17,8 @@ const listQuerySchema = z.object({
   q: z.string().max(200).optional(),
   genre: z.string().max(100).optional(),
   minScore: z.coerce.number().min(1).max(10).optional(),
-  sort: z
-    .enum(['RECENTLY_ADDED', 'RECENTLY_UPDATED', 'RATING', 'TITLE', 'PROGRESS'])
-    .optional(),
-  page: z.coerce.number().int().min(1).optional(),
+  sort: z.enum(['RECENTLY_ADDED', 'RECENTLY_UPDATED', 'RATING', 'TITLE', 'PROGRESS']).optional(),
+  page: z.coerce.number().int().min(1).max(MAX_PAGE).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 
@@ -31,21 +27,21 @@ export async function watchlistRoutes(
   libraryService: LibraryService,
 ): Promise<void> {
   app.post('/anime/:id/watchlist', { preHandler: app.requireAuth }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
+    const { id } = animeIdParamSchema.parse(request.params)
     const input = watchlistBodySchema.parse(request.body)
     await libraryService.upsert(request.user!.id, id, input)
     return reply.code(201).send({ data: { added: true } })
   })
 
   app.put('/anime/:id/watchlist', { preHandler: app.requireAuth }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
+    const { id } = animeIdParamSchema.parse(request.params)
     const input = watchlistBodySchema.parse(request.body)
     await libraryService.upsert(request.user!.id, id, input)
     return sendData(reply, { updated: true })
   })
 
   app.delete('/anime/:id/watchlist', { preHandler: app.requireAuth }, async (request, reply) => {
-    const { id } = idParamSchema.parse(request.params)
+    const { id } = animeIdParamSchema.parse(request.params)
     await libraryService.remove(request.user!.id, id)
     return reply.code(204).send()
   })
@@ -54,10 +50,8 @@ export async function watchlistRoutes(
     '/anime/:id/watchlist',
     { preHandler: optionalAuth(app.authService) },
     async (request, reply) => {
-      const { id } = idParamSchema.parse(request.params)
-      const entry = request.user
-        ? await libraryService.getEntry(request.user.id, id)
-        : null
+      const { id } = animeIdParamSchema.parse(request.params)
+      const entry = request.user ? await libraryService.getEntry(request.user.id, id) : null
       return sendData(reply, entry)
     },
   )

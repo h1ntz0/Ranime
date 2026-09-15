@@ -1,12 +1,23 @@
 import { useState, type FormEvent } from 'react'
 import { API_BASE, changePassword, updateProfile, uploadAvatar } from '../lib/api'
 import { compressAvatarImage } from '../lib/image'
+import { LIST_STATUSES, type ListStatus } from '../lib/types'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Poster } from '../components/Poster'
 import { Field } from '../components/ui/Field'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+
+/**
+ * Excel and Sheets execute a cell whose text starts with a formula trigger, and anime titles are
+ * upstream community data, so an exported row can arrive armed. The leading apostrophe is the
+ * spreadsheet's own "treat as text" marker, so the cell still displays its original value.
+ */
+function csvCell(value: unknown): string {
+  const text = String(value ?? '').replace(/"/g, '""')
+  return /^[=+\-@\t\r]/.test(text) ? `"'${text}"` : `"${text}"`
+}
 
 export default function SettingsPage() {
   const { user, setUser } = useAuth()
@@ -244,12 +255,12 @@ export default function SettingsPage() {
                 for (const item of items) {
                   csvRows.push(
                     [
-                      item.anime.id,
-                      `"${(item.anime.title.romaji || '').replace(/"/g, '""')}"`,
-                      item.status,
-                      item.currentEpisode,
-                      item.totalEpisodes ?? '',
-                      item.anime.averageScore ?? '',
+                      csvCell(item.anime.id),
+                      csvCell(item.anime.title.romaji),
+                      csvCell(item.status),
+                      csvCell(item.currentEpisode),
+                      csvCell(item.totalEpisodes),
+                      csvCell(item.anime.averageScore),
                     ].join(','),
                   )
                 }
@@ -289,18 +300,23 @@ export default function SettingsPage() {
                   toast(`Importing ${items.length} items...`)
                   let imported = 0
                   for (const it of items) {
-                    const animeId = it.animeId || it.anime?.id || it.id
-                    const status = it.status || 'PLANNING'
-                    const currentEpisode = it.currentEpisode || 0
-                    if (animeId) {
-                      await fetch(`${API_BASE}/watchlist/${animeId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status, currentEpisode }),
-                        credentials: 'include',
-                      })
-                      imported++
-                    }
+                    const animeId = Number(it.animeId ?? it.anime?.id ?? it.id)
+                    const status = String(it.status ?? 'PLANNING')
+                    const currentEpisode = Number(it.currentEpisode ?? 0)
+                    // Every value here comes from a file the user picked, and a non-numeric id
+                    // would be interpolated straight into the request path.
+                    if (!Number.isInteger(animeId) || animeId <= 0) continue
+                    if (!LIST_STATUSES.includes(status as ListStatus)) continue
+                    if (!Number.isInteger(currentEpisode) || currentEpisode < 0) continue
+
+                    const res = await fetch(`${API_BASE}/watchlist/${animeId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status, currentEpisode }),
+                      credentials: 'include',
+                    })
+                    if (!res.ok) continue
+                    imported++
                   }
                   toast(`Successfully imported ${imported} anime into your library!`)
                 } catch {

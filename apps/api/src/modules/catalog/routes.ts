@@ -1,18 +1,18 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { notFound } from '../../lib/errors.js'
-import { sendData, sendPage } from '../../lib/http.js'
+import { MAX_PAGE, sendData, sendPage } from '../../lib/http.js'
 
 const seasonQuerySchema = z.object({
   year: z.coerce.number().int().min(1900).max(2200),
   season: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL']),
-  page: z.coerce.number().int().min(1).optional(),
+  page: z.coerce.number().int().min(1).max(MAX_PAGE).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 
 const topQuerySchema = z.object({
   category: z.enum(['top-rated', 'popular', 'trending']).default('top-rated'),
-  page: z.coerce.number().int().min(1).optional(),
+  page: z.coerce.number().int().min(1).max(MAX_PAGE).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
 

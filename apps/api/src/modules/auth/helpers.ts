@@ -5,7 +5,11 @@ import type { AuthService } from './service.js'
 
 export const SESSION_COOKIE = 'animelist_session'
 
-export function setSessionCookie(reply: FastifyReply, token: string, env: { NODE_ENV: string }): void {
+export function setSessionCookie(
+  reply: FastifyReply,
+  token: string,
+  env: { NODE_ENV: string },
+): void {
   const isProd = env.NODE_ENV === 'production'
   reply.setCookie(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -66,10 +70,15 @@ async function authenticateRequest(
 ): Promise<User | undefined> {
   const token = request.cookies?.[SESSION_COOKIE]
   if (!token) return undefined
-  const userId = authService.verifyToken(token)
-  if (!userId) {
+  const claims = authService.verifyToken(token)
+  if (!claims) {
     clearSessionCookie(reply)
     return undefined
   }
-  return authService.getUserById(userId)
+  const user = await authService.getUserById(claims.userId)
+  if (!user || !authService.tokenMatches(claims, user)) {
+    clearSessionCookie(reply)
+    return undefined
+  }
+  return user
 }

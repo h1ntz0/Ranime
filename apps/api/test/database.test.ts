@@ -164,9 +164,7 @@ describe('database migration (from empty)', () => {
     const a = await insertAnime(4)
     const u = (await client.insert(users).values(factory.user(4)).returning())[0]!
 
-    await client
-      .insert(userAnimeLists)
-      .values({ userId: u.id, animeId: a.id, status: 'WATCHING' })
+    await client.insert(userAnimeLists).values({ userId: u.id, animeId: a.id, status: 'WATCHING' })
     await client.insert(ratings).values({ userId: u.id, animeId: a.id, score: '7.5' })
 
     await client.delete(users).where(eq(users.id, u.id))
@@ -197,7 +195,9 @@ describe('database migration (from empty)', () => {
 
   it('maintains anime_genres join integrity', async () => {
     const a = await insertAnime(6)
-    const g = (await client.insert(genres).values({ name: 'Test Genre', slug: 'test-genre' }).returning())[0]!
+    const g = (
+      await client.insert(genres).values({ name: 'Test Genre', slug: 'test-genre' }).returning()
+    )[0]!
 
     await client.insert(animeGenres).values({ animeId: a.id, genreId: g.id })
 
@@ -217,10 +217,7 @@ describe('seed', () => {
     await runSeed(TEST_URL_STRING)
     await runSeed(TEST_URL_STRING)
 
-    const [row] = await client
-      .select()
-      .from(users)
-      .where(eq(users.email, DEMO_USER.email))
+    const [row] = await client.select().from(users).where(eq(users.email, DEMO_USER.email))
     expect(row).toBeDefined()
     expect(row!.username).toBe(DEMO_USER.username)
     expect(row!.passwordHash).toBeTruthy()
@@ -229,10 +226,9 @@ describe('seed', () => {
     const count = Number(
       (await client.select({ count: sql<number>`count(*)::int` }).from(users))[0]!.count,
     )
-    // runSeed creates demo + admin (arrofi) → +2 when DB was empty, idempotent on second run
-    expect(count).toBe(before + 2)
-    const [adminRow] = await client.select().from(users).where(eq(users.email, 'admin@example.local'))
-    expect(adminRow).toBeDefined()
-    expect(adminRow!.role).toBe('ADMIN')
+    // runSeed creates the demo account only → +1 when the DB was empty, idempotent on the second run
+    expect(count).toBe(before + 1)
+    // Re-running the seed must never hand the account away by resetting a live password
+    expect(row!.role).toBe('USER')
   })
 })

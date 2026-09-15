@@ -163,6 +163,32 @@ describe('anime routes', () => {
     expect(res.json().error.message).not.toMatch(/exploded/)
   })
 
+  it('rejects ids above the Postgres integer range instead of failing at the driver', async () => {
+    // AniList ids are mirrored into an `integer` column. 2_147_483_648 used to pass validation,
+    // reach the driver and come back as an HTTP 500 on every /anime/:id route.
+    for (const path of [
+      '/api/anime/2147483648',
+      '/api/anime/2147483648/characters',
+      '/api/anime/2147483648/staff',
+      '/api/anime/2147483648/relations',
+    ]) {
+      const res = await app.inject({ method: 'GET', url: path })
+      expect(res.statusCode).toBe(422)
+      expect(res.json().error.code).toBe('VALIDATION_ERROR')
+    }
+  })
+
+  it('drops out-of-range ids from compare rather than querying them', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/anime/compare?ids=2147483648' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data).toEqual([])
+  })
+
+  it('rejects an unbounded page', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/anime?page=999999999' })
+    expect(res.statusCode).toBe(422)
+  })
+
   it('returns 404 for unknown routes', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/nope' })
     expect(res.statusCode).toBe(404)

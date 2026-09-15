@@ -145,8 +145,9 @@ npm run db:up
 npm run db:migrate
 npm run db:seed
 ```
-*Default demo account credentials:*  
-Email: `demo@example.local` | Password: `password123`
+*Demo account:* `npm run db:seed` creates `demo@example.local` with the password in
+`SEED_DEMO_PASSWORD`. With that unset a random password is generated and printed by the seed —
+no credential is committed to this repository.
 
 ### 4. Start development servers
 ```bash
