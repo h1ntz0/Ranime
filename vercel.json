@@ -21,7 +21,7 @@
   ],
   "headers": [
     {
-      "source": "/((?!api/|uploads/).*)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Content-Security-Policy",
