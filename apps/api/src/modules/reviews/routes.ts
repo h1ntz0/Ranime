@@ -5,6 +5,7 @@ import { optionalAuth } from '../auth/helpers.js'
 import type { ReviewService } from './service.js'
 
 const reviewIdParamSchema = z.object({ id: z.string().uuid() })
+const RECENT_REVIEWS_CACHE = 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600'
 
 function sanitizeText(str: string): string {
   return str.replace(/[<>]/g, '').trim()
@@ -98,6 +99,7 @@ export async function reviewRoutes(
   )
 
   app.get('/reviews/recent', async (request, reply) => {
+    reply.header('Cache-Control', RECENT_REVIEWS_CACHE)
     const query = pageQuerySchema.parse(request.query)
     const result = await reviewService.recent(query.page ?? 1, query.limit ?? 10)
     return sendPage(reply, result)
