@@ -123,7 +123,7 @@ Optimized for smartphones with bottom tab bars, safe-area insets, and universal 
 ## Quickstart
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 22+
 - Docker & Docker Compose
 
 ### 1. Clone & install dependencies

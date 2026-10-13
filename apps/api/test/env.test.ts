@@ -16,6 +16,7 @@ describe('parseEnv', () => {
       NODE_ENV: 'development',
       PORT: 4000,
       DATABASE_URL: 'postgres://anime:anime@localhost:5432/animelist',
+      DATABASE_SSL: 'true',
       ANILIST_API_URL: 'https://graphql.anilist.co',
       JWT_SECRET: 'a-secret-that-is-long-enough',
       FRONTEND_URL: 'http://localhost:3000',
@@ -31,8 +32,19 @@ describe('parseEnv', () => {
 
     expect(env.PORT).toBe(4000)
     expect(env.NODE_ENV).toBe('development')
+    expect(env.DATABASE_SSL).toBe('true')
     expect(env.ANILIST_API_URL).toBe('https://graphql.anilist.co')
     expect(env.FRONTEND_URL).toBe('http://localhost:3000')
+  })
+
+  it('accepts an explicit TLS setting for providers without PostgreSQL TLS', () => {
+    const env = parseEnv({
+      DATABASE_URL: 'postgres://anime:anime@localhost:5432/animelist',
+      DATABASE_SSL: 'false',
+      JWT_SECRET: 'a-secret-that-is-long-enough',
+    })
+
+    expect(env.DATABASE_SSL).toBe('false')
   })
 
   it('rejects a missing DATABASE_URL', () => {

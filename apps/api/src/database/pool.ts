@@ -9,8 +9,9 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
     connectionString.includes('neon.tech') ||
     process.env.NODE_ENV === 'production'
 
-  // Clean sslmode query params to allow pg.Pool's custom ssl object to take precedence
+  // Clean sslmode query params so the explicit TLS setting below takes precedence.
   const cleanUrl = connectionString.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(/[?&]$/, '')
+  const useTls = process.env.DATABASE_SSL !== 'false'
 
   const shouldReuse = opts.reuse ?? process.env.NODE_ENV === 'production'
 
@@ -24,7 +25,7 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: isCloud ? 15000 : 5000,
     keepAlive: true,
-    ...(isCloud ? { ssl: { rejectUnauthorized: false } } : {}),
+    ...(isCloud ? { ssl: useTls ? { rejectUnauthorized: true } : false } : {}),
   })
 
   pool.on('error', (err) => {
@@ -43,6 +44,3 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
 
   return pool
 }
-
-
-

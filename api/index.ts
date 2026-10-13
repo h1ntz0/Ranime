@@ -2,10 +2,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { FastifyInstance } from 'fastify'
 import type { Pool } from 'pg'
 
-// The runtime imports below stay dynamic on purpose: this is the Vercel function entry, and the
-// Fastify app graph plus the migrator must only load once a request actually needs them.
+// Keep the Fastify app lazy for Vercel cold starts. Database migrations run explicitly before
+// release through the direct/session connection, never as a background request side effect.
 let cachedApp: FastifyInstance | null = null
-let migrationsRan = false
 
 /**
  * Bootstrap accounts are supplied by the environment. Nothing is hardcoded here: this file is
@@ -32,50 +31,18 @@ async function ensureBootstrapAdmin(pool: Pool) {
   )
 }
 
-async function ensureMigrations() {
-  if (migrationsRan) return
-  migrationsRan = true
-  try {
-    // Run via isolated pool to avoid clobbering the global production pool
-    const pg = await import('pg')
-    const { drizzle } = await import('drizzle-orm/node-postgres')
-    const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-    const { loadEnv } = await import('../apps/api/src/config/env.js')
-    const { fileURLToPath } = await import('node:url')
-    const env = loadEnv()
-    const migrationsFolder = fileURLToPath(new URL('../database/migrations', import.meta.url))
-    const pool = new pg.default.Pool({
-      connectionString: env.DATABASE_URL.replace(/([?&])sslmode=[^&]+(&|$)/, '$1').replace(
-        /[?&]$/,
-        '',
-      ),
-      max: 3,
-      connectionTimeoutMillis: 10000,
-      idleTimeoutMillis: 15000,
-      ssl: { rejectUnauthorized: false },
-    })
-    try {
-      await migrate(drizzle(pool), { migrationsFolder })
-      try {
-        await ensureBootstrapAdmin(pool)
-      } catch (e) {
-        console.error('Bootstrap admin failed (non-fatal)', e)
-      }
-    } finally {
-      await pool.end()
-    }
-  } catch (e) {
-    console.error('Migration failed (non-fatal):', e)
-  }
-}
-
 async function getApp() {
   if (!cachedApp) {
-    // Run migrations non-blocking in background or on first init
-    ensureMigrations().catch(() => {})
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
+    if (process.env.BOOTSTRAP_ADMIN_EMAIL?.trim() && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+      try {
+        await ensureBootstrapAdmin(app.pool)
+      } catch (error) {
+        console.error('Bootstrap admin failed (non-fatal)', error)
+      }
+    }
     cachedApp = app
   }
   return cachedApp

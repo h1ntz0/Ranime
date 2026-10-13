@@ -161,3 +161,14 @@ Buka **http://localhost:3000** → login `flowuser@example.local` / `password123
 - Web berjalan dengan Vite dev: edit file di `apps/web/src/` langsung terlihat di browser (HMR).
 - Semua data dari AniList disinkronkan dan disimpan lokal di PostgreSQL; browser tidak pernah akses AniList langsung.
 - Verifikasi cepat API: `curl http://localhost:4000/api/health`
+
+---
+
+## 11. Deploy produksi (Vercel)
+
+- Push perubahan terverifikasi ke branch produksi `master`; project Vercel Ranime terhubung ke branch ini.
+- Jalankan `npm run db:migrate` secara terpisah sebelum cutover, memakai koneksi direct/session database. Jangan mengandalkan function Vercel untuk migrasi saat cold start.
+- Set `DATABASE_URL` di Vercel ke transaction-pooler untuk request aplikasi. Simpan sebagai environment variable sensitif; jangan commit connection string ke repo.
+- `DATABASE_SSL` default `true` dan memverifikasi sertifikat. Ubah ke `false` hanya bila endpoint database yang dipilih memang menolak TLS; koneksi seperti itu tidak terenkripsi pada lapisan PostgreSQL.
+- Setelah push, cek `/api/health` harus berstatus HTTP 200 dengan `database: up`, lalu pastikan alias domain memuat bundle deployment terbaru. Alias custom bisa tertinggal dari deployment baru.
+- Simpan deployment sebelumnya sebagai rollback target. Jangan seed ulang atau ganti database sebelum memastikan backup/data tujuan sudah diverifikasi.

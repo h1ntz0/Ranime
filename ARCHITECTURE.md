@@ -83,7 +83,7 @@ src/
 
 ## Frontend (apps/web)
 
-React 18 + Vite, TanStack Query for server state, React Router for routing, Tailwind CSS v4
+React 19 + Vite, TanStack Query for server state, React Router for routing, Tailwind CSS v4
 (CSS-first) for styling.
 
 ```
