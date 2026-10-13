@@ -468,7 +468,7 @@ export class AnimeService {
           return view
         }
       }
-    } else if (this.isStale(local.lastSyncedAt, this.ttl.detail)) {
+    } else if (local && this.isStale(local.lastSyncedAt, this.ttl.detail)) {
       await this.refresh(`detail:${externalId}`, async () => {
         const detail = await this.fetchDetail(externalId)
         if (detail) {
