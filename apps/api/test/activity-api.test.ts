@@ -61,31 +61,11 @@ beforeAll(async () => {
   await app.ready()
 
   await db.insert(anime).values([
-    {
-      externalId: 910001,
-      titleRomaji: 'Activity Anime',
-      episodes: 12,
-      format: 'TV',
-      status: 'RELEASING',
-      averageScore: 80,
-      popularity: 100,
-      trending: 50,
-    },
-    {
-      externalId: 910002,
-      titleRomaji: 'Reviewable Anime',
-      episodes: 24,
-      format: 'TV',
-      status: 'FINISHED',
-      averageScore: 90,
-      popularity: 200,
-      trending: 100,
-    },
+    { externalId: 910001, titleRomaji: 'Activity Anime', episodes: 12, format: 'TV', status: 'RELEASING', averageScore: 80, popularity: 100, trending: 50 },
+    { externalId: 910002, titleRomaji: 'Reviewable Anime', episodes: 24, format: 'TV', status: 'FINISHED', averageScore: 90, popularity: 200, trending: 100 },
   ])
   const studio = (await db.insert(studios).values({ name: 'Test Studio' }).returning())[0]!
-  const act = (
-    await db.select({ id: anime.id }).from(anime).where(eq(anime.externalId, 910001))
-  )[0]!
+  const act = (await db.select({ id: anime.id }).from(anime).where(eq(anime.externalId, 910001)))[0]!
   await db.insert(animeStudios).values({ animeId: act.id, studioId: studio.id, isMain: true })
 })
 
@@ -205,11 +185,7 @@ describe('user activity feed', () => {
   it('lists studios and their anime by slug', async () => {
     const list = await inject('GET', '/api/studios')
     expect(list.statusCode).toBe(200)
-    expect(list.json().data[0]).toMatchObject({
-      name: 'Test Studio',
-      slug: 'test-studio',
-      count: 1,
-    })
+    expect(list.json().data[0]).toMatchObject({ name: 'Test Studio', slug: 'test-studio', count: 1 })
 
     const anime = await inject('GET', '/api/studios/test-studio')
     expect(anime.statusCode).toBe(200)
