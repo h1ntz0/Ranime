@@ -113,6 +113,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
       'Content-Security-Policy',
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.anilist.co https://*.googleusercontent.com; connect-src 'self' https://graphql.anilist.co; frame-ancestors 'none';",
     )
+    if (!reply.getHeader('cache-control')) {
+      reply.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+    }
   })
 
   const allowedOrigins = [

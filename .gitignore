@@ -28,3 +28,4 @@ docs/ai/
 artifacts/
 # Database dumps (root-level only; database/migrations/*.sql stays tracked)
 /*.sql
+.worktrees/

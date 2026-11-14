@@ -211,12 +211,12 @@ export default function AnimeDetailPage() {
   const myReview = useQuery({
     queryKey: ['anime', animeId, 'myReview', user?.id],
     queryFn: () => fetchMyReview(animeId),
-    enabled: Number.isFinite(animeId),
+    enabled: Number.isFinite(animeId) && !!user,
   })
   const entry = useQuery({
     queryKey: ['anime', animeId, 'entry', user?.id],
     queryFn: () => fetchWatchlistEntry(animeId),
-    enabled: Number.isFinite(animeId),
+    enabled: Number.isFinite(animeId) && !!user,
   })
 
   const entryKey = ['anime', animeId, 'entry', user?.id]

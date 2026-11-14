@@ -77,6 +77,9 @@ export async function reviewRoutes(
     '/anime/:id/reviews',
     { preHandler: optionalAuth(app.authService) },
     async (request, reply) => {
+      if (!request.user) {
+        reply.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600')
+      }
       const { id } = animeIdParamSchema.parse(request.params)
       const query = pageQuerySchema.parse(request.query)
       const result = await reviewService.listForAnime(id, query.page ?? 1, query.limit ?? 10, {

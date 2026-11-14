@@ -70,6 +70,7 @@ export async function animeRoutes(app: FastifyInstance): Promise<void> {
   })
 
   app.get('/anime/compare', async (request, reply) => {
+    reply.header('Cache-Control', CACHE_HEADER)
     const compareQuerySchema = z.object({
       ids: z.string().transform((val) =>
         val

@@ -5,6 +5,7 @@ import type { Pool } from 'pg'
 // Keep the Fastify app lazy for Vercel cold starts. Database migrations run explicitly before
 // release through the direct/session connection, never as a background request side effect.
 let cachedApp: FastifyInstance | null = null
+let adminBootstrapped = false
 
 /**
  * Bootstrap accounts are supplied by the environment. Nothing is hardcoded here: this file is
@@ -36,11 +37,13 @@ async function getApp() {
     const { buildApp } = await import('../apps/api/src/app.js')
     const app = await buildApp({ logger: false })
     await app.ready()
-    if (process.env.BOOTSTRAP_ADMIN_EMAIL?.trim() && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+    if (!adminBootstrapped && process.env.BOOTSTRAP_ADMIN_EMAIL?.trim() && process.env.BOOTSTRAP_ADMIN_PASSWORD) {
       try {
         await ensureBootstrapAdmin(app.pool)
       } catch (error) {
         console.error('Bootstrap admin failed (non-fatal)', error)
+      } finally {
+        adminBootstrapped = true
       }
     }
     cachedApp = app

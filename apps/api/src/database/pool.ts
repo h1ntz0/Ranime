@@ -19,11 +19,13 @@ export function createPool(connectionString: string, opts: { reuse?: boolean } =
     return globalPool
   }
 
+  const isServerless = Boolean(process.env.VERCEL)
+
   const pool = new pg.Pool({
     connectionString: cleanUrl,
-    max: isCloud ? 4 : 10,
+    max: isServerless ? 2 : isCloud ? 4 : 10,
     idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: isCloud ? 15000 : 5000,
+    connectionTimeoutMillis: isServerless ? 5000 : isCloud ? 15000 : 5000,
     keepAlive: true,
     ...(isCloud ? { ssl: useTls ? { rejectUnauthorized: true } : false } : {}),
   })

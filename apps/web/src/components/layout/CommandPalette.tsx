@@ -10,7 +10,13 @@ import type { AnimeCard } from '../../lib/types'
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 250)
+    return () => clearTimeout(t)
+  }, [query])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -26,9 +32,9 @@ export function CommandPalette() {
   }, [])
 
   const searchResults = useQuery({
-    queryKey: ['command-palette', query],
-    queryFn: ({ signal }) => fetchAnimeList({ q: query, limit: 8 }, signal),
-    enabled: query.trim().length > 1,
+    queryKey: ['command-palette', debouncedQuery],
+    queryFn: ({ signal }) => fetchAnimeList({ q: debouncedQuery, limit: 8 }, signal),
+    enabled: debouncedQuery.trim().length > 1 && open,
   })
 
   function handleSelect(path: string) {
