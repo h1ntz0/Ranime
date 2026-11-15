@@ -3,6 +3,12 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/uploads/(.*)", "destination": "/api/index.ts" },

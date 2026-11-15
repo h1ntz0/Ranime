@@ -55,6 +55,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
     logger: options.logger ?? env.NODE_ENV !== 'test',
   })
 
+  const BLOCKED_BOTS_REGEX = /Reflectionbot|Bytespider|CCBot|GPTBot|ClaudeBot/i
+  app.addHook('onRequest', async (request, reply) => {
+    const userAgent = (request.headers['user-agent'] as string) || ''
+    if (BLOCKED_BOTS_REGEX.test(userAgent)) {
+      reply.code(403).send({ error: { code: 'FORBIDDEN', message: 'Bot access to API is disallowed.' } })
+      return reply
+    }
+  })
+
   app.decorate('env', env)
   app.decorate('pool', pool)
   app.decorate(
