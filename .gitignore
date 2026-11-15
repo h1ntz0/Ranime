@@ -21,11 +21,13 @@ apps/api/uploads/
 .codebase-memory/
 PRD.md
 AGENTS.md
+.agents/
 docs/ai/
 
 
 # Security scan output — never commit captured cookies/tokens
 artifacts/
-# Database dumps (root-level only; database/migrations/*.sql stays tracked)
+# Database dumps (root-level and database/backups)
 /*.sql
+database/backups/
 .worktrees/
