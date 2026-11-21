@@ -19,7 +19,7 @@ const updateProfileSchema = z
         'Username can only contain alphanumeric characters, underscores, and hyphens',
       )
       .optional(),
-    email: z.string().trim().toLowerCase().email().optional(),
+    email: z.string().trim().toLowerCase().pipe(z.email()).optional(),
   })
   .refine((v) => v.username !== undefined || v.email !== undefined, {
     message: 'Nothing to update',

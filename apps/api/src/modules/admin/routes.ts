@@ -169,7 +169,7 @@ export async function adminRoutes(app: FastifyInstance, authService: AuthService
   })
 
   adminScope.patch('/admin/users/:id/role', async (request, reply) => {
-    const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
+    const { id } = z.object({ id: z.uuid() }).parse(request.params)
     const { role } = z.object({ role: z.enum(['USER', 'ADMIN']) }).parse(request.body)
 
     const user = await authService.getUserById(id)

@@ -4,7 +4,7 @@ import { animeIdParamSchema, pageQuerySchema, sendData, sendPage } from '../../l
 import { optionalAuth } from '../auth/helpers.js'
 import type { ReviewService } from './service.js'
 
-const reviewIdParamSchema = z.object({ id: z.string().uuid() })
+const reviewIdParamSchema = z.object({ id: z.uuid() })
 const RECENT_REVIEWS_CACHE = 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600'
 
 function sanitizeText(str: string): string {

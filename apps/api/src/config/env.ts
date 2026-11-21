@@ -16,7 +16,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_SSL: z.enum(['true', 'false']).default('true'),
-  ANILIST_API_URL: z.string().url().default('https://graphql.anilist.co'),
+  ANILIST_API_URL: z.url().default('https://graphql.anilist.co'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   RESEND_API_KEY: z.string().optional(),
@@ -35,7 +35,7 @@ export type Env = z.infer<typeof envSchema>
 export function parseEnv(raw: Record<string, unknown>): Env {
   const result = envSchema.safeParse(raw)
   if (!result.success) {
-    const details = Object.entries(result.error.flatten().fieldErrors)
+    const details = Object.entries(z.flattenError(result.error).fieldErrors)
       .map(([key, messages]) => `${key}: ${messages?.join(', ')}`)
       .join('; ')
     throw new Error(`Invalid environment configuration. ${details}`)
