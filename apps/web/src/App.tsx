@@ -1,110 +1,133 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import HomePage from './pages/HomePage'
-import ExplorePage from './pages/ExplorePage'
-import AnimeDetailPage from './pages/AnimeDetailPage'
-import TopPage from './pages/TopPage'
-import SeasonPage from './pages/SeasonPage'
-import GenresPage from './pages/GenresPage'
-import GenreDetailPage from './pages/GenreDetailPage'
-import StudioDetailPage from './pages/StudioDetailPage'
-import AiringPage from './pages/AiringPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
-import WatchlistPage from './pages/WatchlistPage'
-import LibraryPage from './pages/LibraryPage'
-import StatisticsPage from './pages/StatisticsPage'
-import ProfilePage from './pages/ProfilePage'
-import SettingsPage from './pages/SettingsPage'
-import MyRatingsPage from './pages/MyRatingsPage'
-import MyReviewsPage from './pages/MyReviewsPage'
-import ComparePage from './pages/ComparePage'
-import RoulettePage from './pages/RoulettePage'
-import TierListPage from './pages/TierListPage'
-import AdminPage from './pages/AdminPage'
-import NotFoundPage from './pages/NotFoundPage'
+
+const HomePage = lazy(() => import('./pages/HomePage'))
+const ExplorePage = lazy(() => import('./pages/ExplorePage'))
+const AnimeDetailPage = lazy(() => import('./pages/AnimeDetailPage'))
+const TopPage = lazy(() => import('./pages/TopPage'))
+const SeasonPage = lazy(() => import('./pages/SeasonPage'))
+const GenresPage = lazy(() => import('./pages/GenresPage'))
+const GenreDetailPage = lazy(() => import('./pages/GenreDetailPage'))
+const StudioDetailPage = lazy(() => import('./pages/StudioDetailPage'))
+const AiringPage = lazy(() => import('./pages/AiringPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const WatchlistPage = lazy(() => import('./pages/WatchlistPage'))
+const LibraryPage = lazy(() => import('./pages/LibraryPage'))
+const StatisticsPage = lazy(() => import('./pages/StatisticsPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const MyRatingsPage = lazy(() => import('./pages/MyRatingsPage'))
+const MyReviewsPage = lazy(() => import('./pages/MyReviewsPage'))
+const ComparePage = lazy(() => import('./pages/ComparePage'))
+const RoulettePage = lazy(() => import('./pages/RoulettePage'))
+const TierListPage = lazy(() => import('./pages/TierListPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+
+function PageFallback() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading page"
+      style={{
+        display: 'flex',
+        minHeight: '40vh',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <span>Loading...</span>
+    </div>
+  )
+}
+
+function withSuspense(node: ReactNode) {
+  return <Suspense fallback={<PageFallback />}>{node}</Suspense>
+}
 
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/anime/:id" element={<AnimeDetailPage />} />
-        <Route path="/compare" element={<ComparePage />} />
-        <Route path="/roulette" element={<RoulettePage />} />
-        <Route path="/tier-list" element={<TierListPage />} />
-        <Route path="/top" element={<TopPage />} />
-        <Route path="/season" element={<SeasonPage />} />
-        <Route path="/genres" element={<GenresPage />} />
-        <Route path="/genres/:slug" element={<GenreDetailPage />} />
-        <Route path="/studios/:slug" element={<StudioDetailPage />} />
-        <Route path="/airing" element={<AiringPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/" element={withSuspense(<HomePage />)} />
+        <Route path="/explore" element={withSuspense(<ExplorePage />)} />
+        <Route path="/anime/:id" element={withSuspense(<AnimeDetailPage />)} />
+        <Route path="/compare" element={withSuspense(<ComparePage />)} />
+        <Route path="/roulette" element={withSuspense(<RoulettePage />)} />
+        <Route path="/tier-list" element={withSuspense(<TierListPage />)} />
+        <Route path="/top" element={withSuspense(<TopPage />)} />
+        <Route path="/season" element={withSuspense(<SeasonPage />)} />
+        <Route path="/genres" element={withSuspense(<GenresPage />)} />
+        <Route path="/genres/:slug" element={withSuspense(<GenreDetailPage />)} />
+        <Route path="/studios/:slug" element={withSuspense(<StudioDetailPage />)} />
+        <Route path="/airing" element={withSuspense(<AiringPage />)} />
+        <Route path="/login" element={withSuspense(<LoginPage />)} />
+        <Route path="/register" element={withSuspense(<RegisterPage />)} />
+        <Route path="/forgot-password" element={withSuspense(<ForgotPasswordPage />)} />
+        <Route path="/reset-password" element={withSuspense(<ResetPasswordPage />)} />
         <Route
           path="/watchlist"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <WatchlistPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
         <Route
           path="/library"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <LibraryPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
         <Route
           path="/statistics"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <StatisticsPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
         <Route
           path="/my-ratings"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <MyRatingsPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
         <Route
           path="/my-reviews"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <MyReviewsPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
-        <Route path="/profile/:username" element={<ProfilePage />} />
+        <Route path="/profile/:username" element={withSuspense(<ProfilePage />)} />
         <Route
           path="/settings"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <SettingsPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
         <Route
           path="/admin"
-          element={
+          element={withSuspense(
             <ProtectedRoute>
               <AdminPage />
-            </ProtectedRoute>
-          }
+            </ProtectedRoute>,
+          )}
         />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>
     </Routes>
   )
